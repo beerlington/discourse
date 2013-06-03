@@ -1,17 +1,9 @@
-# This is a set of sample deployment recipes for deploying via Capistrano.
-# One of the recipes (deploy:symlink_nginx) assumes you have an nginx configuration
-# file at config/nginx.conf. You can make this easily from the provided sample
-# nginx configuration file.
-#
-# For help deploying via Capistrano, see this thread:
-# http://meta.discourse.org/t/deploy-discourse-to-an-ubuntu-vps-using-capistrano/6353
-
+# Require the necessary Capistrano recipes
 require 'capistrano-rbenv'
 require 'bundler/capistrano'
 require 'sidekiq/capistrano'
 
-# Repo Settings
-# You should change this to your fork of discourse
+# Repository settings, forked to an outside copy
 set :repository, 'git@github.com:beerlington/discourse.git'
 set :deploy_via, :remote_cache
 set :branch, fetch(:branch, 'master')
@@ -36,13 +28,9 @@ role :web, 'vtonline.org', primary: true
 set :application, 'discourse'
 set :deploy_to, "/home/#{user}/#{application}"
 
-# Perform an initial bundle
-after "deploy:setup" do
-  run "cd #{current_path} && bundle install"
-end
-
-# Tasks to start/stop/restart thin
 namespace :deploy do
+  # Tasks to start, stop and restart thin. This takes Discourse's
+  # recommendation of changing the RUBY_GC_MALLOC_LIMIT.
   desc 'Start thin servers'
   task :start, :roles => :app, :except => { :no_release => true } do
     run "cd #{current_path} && RUBY_GC_MALLOC_LIMIT=90000000 bundle exec thin -C config/thin.yml start", :pty => false
@@ -63,7 +51,6 @@ namespace :deploy do
   # The uploaded files are ones I've removed from version control since my
   # project is public. This task also symlinks the nginx configuration so, if
   # you change that, re-run this task.
-  desc 'setup config'
   task :setup_config, roles: :app do
     run  "mkdir -p #{shared_path}/config/initializers"
     run  "mkdir -p #{shared_path}/config/environments"
@@ -89,7 +76,7 @@ end
 after "deploy:setup", "deploy:setup_config"
 after "deploy:finalize_update", "deploy:symlink_config"
 
-# Tasks to start/stop/restart a daemonized clockwork instance
+# Tasks to start/stop/restart the clockwork process.
 namespace :clockwork do
   desc "Start clockwork"
   task :start, :roles => [:app] do
@@ -109,8 +96,6 @@ after  "deploy:stop",    "clockwork:stop"
 after  "deploy:start",   "clockwork:start"
 before "deploy:restart", "clockwork:restart"
 
-# Seed your database with the initial production image. Note that the production
-# image assumes an empty, unmigrated database.
 namespace :db do
   desc 'Seed your database for the first time'
   task :seed do
@@ -118,5 +103,4 @@ namespace :db do
   end
 end
 
-# Migrate the database with each deployment
 after  'deploy:update_code', 'deploy:migrate'
