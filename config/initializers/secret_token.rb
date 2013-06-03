@@ -9,11 +9,5 @@
 #
 # Discourse::Application.config.secret_token = "SET_SECRET_HERE"
 
-# delete all lines below in production
-if Rails.env.test? || Rails.env.development? || Rails.env == "profile"
-  Discourse::Application.config.secret_token = "47f5390004bf6d25bb97083fb98e7cc133ab450ba814dd19638a78282b4ca291"
-else
-  raise "You must set a secret token in ENV['SECRET_TOKEN'] or in config/initializers/secret_token.rb" if ENV['SECRET_TOKEN'].blank?
-  Discourse::Application.config.secret_token = ENV['SECRET_TOKEN']
-end
+Discourse::Application.config.secret_token = '2d58672b41eced013fa2fac2078e9f10db436d9c2ef722b73c18944d8dc9ceef0dd27962a0b7a0897417b44d2439d07af5ae90f927ac23d1948b4b2c0c5c0c75'
 
