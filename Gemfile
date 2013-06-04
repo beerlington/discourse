@@ -26,6 +26,7 @@ gem 'fastimage'
 gem 'fog', require: false
 gem 'has_ip_address'
 gem 'hiredis'
+gem 'newrelic_rpm'
 
 gem 'capistrano', require: nil
 gem 'capistrano-rbenv', require: nil
