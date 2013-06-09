@@ -52,6 +52,23 @@ describe Topic do
     end
   end
 
+  context 'private message title' do
+    before do
+      SiteSetting.stubs(:min_topic_title_length).returns(15)
+      SiteSetting.stubs(:min_private_message_title_length).returns(3)
+    end
+
+    it 'allows shorter titles' do
+      pm = Fabricate.build(:private_message_topic, title: 'a' * SiteSetting.min_private_message_title_length)
+      expect(pm).to be_valid
+    end
+
+    it 'but not too short' do
+      pm = Fabricate.build(:private_message_topic, title: 'a')
+      expect(pm).to_not be_valid
+    end
+  end
+
   context 'topic title uniqueness' do
 
     let!(:topic) { Fabricate(:topic) }
@@ -640,15 +657,25 @@ describe Topic do
       let(:status) { 'autoclosed' }
       it_should_behave_like 'a status that closes a topic'
 
-      it 'puts the autoclose duration in the moderator post' do
-        @topic.created_at = 3.days.ago
-        @topic.update_status(status, true, @user)
+      context 'topic was set to close when it was created' do
+        it 'puts the autoclose duration in the moderator post' do
+          @topic.created_at = 3.days.ago
+          @topic.update_status(status, true, @user)
+          expect(@topic.posts.last.raw).to include "closed after 3 days"
+        end
+      end
 
-        expect(@topic.posts.last.raw).to include "closed after 3 days"
+      context 'topic was set to close after it was created' do
+        it 'puts the autoclose duration in the moderator post' do
+          @topic.created_at = 7.days.ago
+          Timecop.freeze(2.days.ago) do
+            @topic.set_auto_close(2)
+          end
+          @topic.update_status(status, true, @user)
+          expect(@topic.posts.last.raw).to include "closed after 2 days"
+        end
       end
     end
-
-
   end
 
   describe 'toggle_star' do
@@ -1010,7 +1037,7 @@ describe Topic do
         it 'queues a job to close the topic' do
           Timecop.freeze(Time.zone.now) do
             Jobs.expects(:enqueue_at).with(7.days.from_now, :close_topic, all_of( has_key(:topic_id), has_key(:user_id) ))
-            Fabricate(:topic, auto_close_at: 7.days.from_now, user: Fabricate(:admin))
+            Fabricate(:topic, auto_close_days: 7, user: Fabricate(:admin))
           end
         end
 
@@ -1019,7 +1046,7 @@ describe Topic do
           Jobs.expects(:enqueue_at).with do |datetime, job_name, job_args|
             job_args[:user_id] == topic_creator.id
           end
-          Fabricate(:topic, auto_close_at: 7.days.from_now, user: topic_creator)
+          Fabricate(:topic, auto_close_days: 7, user: topic_creator)
         end
 
         it 'when auto_close_user_id is set, it will use it as the topic closer' do
@@ -1028,13 +1055,20 @@ describe Topic do
           Jobs.expects(:enqueue_at).with do |datetime, job_name, job_args|
             job_args[:user_id] == topic_closer.id
           end
-          Fabricate(:topic, auto_close_at: 7.days.from_now, auto_close_user: topic_closer, user: topic_creator)
+          Fabricate(:topic, auto_close_days: 7, auto_close_user: topic_closer, user: topic_creator)
         end
 
         it "ignores the category's default auto-close" do
           Timecop.freeze(Time.zone.now) do
             Jobs.expects(:enqueue_at).with(7.days.from_now, :close_topic, all_of( has_key(:topic_id), has_key(:user_id) ))
-            Fabricate(:topic, auto_close_at: 7.days.from_now, user: Fabricate(:admin), category: Fabricate(:category, auto_close_days: 2))
+            Fabricate(:topic, auto_close_days: 7, user: Fabricate(:admin), category: Fabricate(:category, auto_close_days: 2))
+          end
+        end
+
+        it 'sets the time when auto_close timer starts' do
+          Timecop.freeze(Time.zone.now) do
+            topic = Fabricate(:topic, auto_close_days: 7, user: Fabricate(:admin))
+            expect(topic.auto_close_started_at).to eq(Time.zone.now)
           end
         end
       end
@@ -1122,6 +1156,79 @@ describe Topic do
           topic.save.should be_true
         end
       end
+    end
+  end
+
+  describe 'set_auto_close' do
+    let(:topic)         { Fabricate.build(:topic) }
+    let(:closing_topic) { Fabricate.build(:topic, auto_close_days: 5) }
+    let(:admin)         { Fabricate.build(:user, id: 123) }
+
+    before { Discourse.stubs(:system_user).returns(admin) }
+
+    it 'sets auto_close_at' do
+      Timecop.freeze(Time.zone.now) do
+        topic.set_auto_close(3, admin)
+        expect(topic.auto_close_at).to eq(3.days.from_now)
+      end
+    end
+
+    it 'sets auto_close_user to given user if it is a staff user' do
+      topic.set_auto_close(3, admin)
+      expect(topic.auto_close_user_id).to eq(admin.id)
+    end
+
+    it 'sets auto_close_user to system user if given user is not staff' do
+      topic.set_auto_close(3, Fabricate.build(:user, id: 444))
+      expect(topic.auto_close_user_id).to eq(admin.id)
+    end
+
+    it 'sets auto_close_user to system_user if user is not given and topic creator is not staff' do
+      topic.set_auto_close(3)
+      expect(topic.auto_close_user_id).to eq(admin.id)
+    end
+
+    it 'sets auto_close_user to topic creator if it is a staff user' do
+      staff_topic = Fabricate.build(:topic, user: Fabricate.build(:admin, id: 999))
+      staff_topic.set_auto_close(3)
+      expect(staff_topic.auto_close_user_id).to eq(999)
+    end
+
+    it 'clears auto_close_at if num_days is nil' do
+      closing_topic.set_auto_close(nil)
+      expect(closing_topic.auto_close_at).to be_nil
+    end
+
+    it 'clears auto_close_started_at if num_days is nil' do
+      closing_topic.set_auto_close(nil)
+      expect(closing_topic.auto_close_started_at).to be_nil
+    end
+
+    it 'updates auto_close_at if it was already set to close' do
+      Timecop.freeze(Time.zone.now) do
+        closing_topic.set_auto_close(14)
+        expect(closing_topic.auto_close_at).to eq(14.days.from_now)
+      end
+    end
+
+    it 'does not update auto_close_started_at if it was already set to close' do
+      expect{
+        closing_topic.set_auto_close(14)
+      }.to_not change(closing_topic, :auto_close_started_at)
+    end
+  end
+
+  describe 'secured' do
+    it 'can remove secure groups' do
+      category = Fabricate(:category, secure: true)
+      topic = Fabricate(:topic, category: category)
+
+      Topic.secured(Guardian.new(nil)).count.should == 0
+      Topic.secured(Guardian.new(Fabricate(:admin))).count.should == 2
+
+      # for_digest
+
+      Topic.for_digest(Fabricate(:user), 1.year.ago).count.should == 0
     end
   end
 

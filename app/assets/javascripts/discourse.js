@@ -34,6 +34,37 @@ Discourse = Ember.Application.createWithMixins({
     return u + url;
   },
 
+  /**
+    This custom resolver allows us to find admin templates without calling .render
+    even though our path formats are slightly different than what ember prefers.
+  */
+  resolver: Ember.DefaultResolver.extend({
+
+    resolveTemplate: function(parsedName) {
+      var resolvedTemplate = this._super(parsedName);
+      if (resolvedTemplate) { return resolvedTemplate; }
+
+      var decamelized = parsedName.fullNameWithoutType.decamelize();
+
+      // See if we can find it with slashes instead of underscores
+      var slashed = decamelized.replace("_", "/");
+      resolvedTemplate = Ember.TEMPLATES[slashed];
+      if (resolvedTemplate) { return resolvedTemplate; }
+
+      // If we can't find a template, check to see if it's similar to how discourse
+      // lays out templates like: adminEmail => admin/templates/email
+      if (parsedName.fullNameWithoutType.indexOf('admin') === 0) {
+        decamelized = decamelized.replace(/^admin\_/, 'admin/templates/');
+        decamelized = decamelized.replace(/^admin\./, 'admin/templates/');
+        decamelized = decamelized.replace(/\./, '_');
+
+        resolvedTemplate = Ember.TEMPLATES[decamelized];
+        if (resolvedTemplate) { return resolvedTemplate; }
+      }
+      return Ember.TEMPLATES.not_found;
+    }
+  }),
+
   titleChanged: function() {
     var title;
     title = "";
@@ -141,6 +172,10 @@ Discourse = Ember.Application.createWithMixins({
         xhr.setRequestHeader('X-CSRF-Token', csrfToken);
       }
     });
+
+    setInterval(function(){
+      Discourse.Formatter.updateRelativeAge($('.relative-date'));
+    },60 * 1000);
   },
 
   /**
@@ -160,6 +195,16 @@ Discourse = Ember.Application.createWithMixins({
     // TODO, how to dispatch this to the controller without the container?
     var loginController = Discourse.__container__.lookup('controller:login');
     return loginController.authenticationComplete(options);
+  },
+
+  loginRequired: function() {
+    return (
+      Discourse.SiteSettings.login_required && !Discourse.User.current()
+    );
+  }.property(),
+
+  redirectIfLoginRequired: function(route) {
+    if(this.get('loginRequired')) { route.transitionTo('login'); }
   },
 
   /**

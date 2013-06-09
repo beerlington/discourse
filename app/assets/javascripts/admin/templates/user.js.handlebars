@@ -59,11 +59,15 @@
 
     </div>
     <div class='controls'>
-      {{#if can_approve}}
-        <button class='btn' {{action approve target="content"}}>
-          <i class='icon icon-ok'></i>
-          {{i18n admin.user.approve}}
-        </button>
+      {{#if approved}}
+        {{i18n admin.user.approve_success}}
+      {{else}}
+        {{#if can_approve}}
+          <button class='btn' {{action approve target="content"}}>
+            <i class='icon icon-ok'></i>
+            {{i18n admin.user.approve}}
+          </button>
+        {{/if}}
       {{/if}}
     </div>
   </div>
@@ -159,6 +163,24 @@
         </button>
       {{/if}}
     {{/if}}
+    </div>
+  </div>
+  <div class='display-row'>
+    <div class='field'>{{i18n admin.user.blocked}}</div>
+    <div class='value'>{{blocked}}</div>
+    <div class='controls'>
+      {{#if blocked}}
+        <button class='btn' {{action unblock target="content"}}>
+          <i class='icon icon-thumbs-up'></i>
+          {{i18n admin.user.unblock}}
+        </button>
+      {{else}}
+        <button class='btn btn-danger' {{action block target="content"}}>
+          <i class='icon icon-ban-circle'></i>
+          {{i18n admin.user.block}}
+        </button>
+      {{/if}}
+      {{i18n admin.user.block_explanation}}
     </div>
   </div>
 </section>

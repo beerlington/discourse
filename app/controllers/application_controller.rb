@@ -22,6 +22,7 @@ class ApplicationController < ActionController::Base
   before_filter :preload_json
   before_filter :check_xhr
   before_filter :set_locale
+  before_filter :redirect_to_login_if_required
 
   rescue_from Exception do |exception|
     unless [ ActiveRecord::RecordNotFound, ActionController::RoutingError,
@@ -97,21 +98,23 @@ class ApplicationController < ActionController::Base
 
   # If we are rendering HTML, preload the session data
   def preload_json
-    if request.format && request.format.html?
-      if guardian.current_user
-        guardian.current_user.sync_notification_channel_position
-      end
 
-      store_preloaded("site", Site.cached_json(current_user))
+    # We don't preload JSON on xhr or JSON request
+    return if request.xhr?
 
-      if current_user.present?
-        store_preloaded("currentUser", MultiJson.dump(CurrentUserSerializer.new(current_user, root: false)))
-
-        serializer = ActiveModel::ArraySerializer.new(TopicTrackingState.report([current_user.id]), each_serializer: TopicTrackingStateSerializer)
-        store_preloaded("topicTrackingStates", MultiJson.dump(serializer))
-      end
-      store_preloaded("siteSettings", SiteSetting.client_settings_json)
+    if guardian.current_user
+      guardian.current_user.sync_notification_channel_position
     end
+
+    store_preloaded("site", Site.cached_json(current_user))
+
+    if current_user.present?
+      store_preloaded("currentUser", MultiJson.dump(CurrentUserSerializer.new(current_user, root: false)))
+
+      serializer = ActiveModel::ArraySerializer.new(TopicTrackingState.report([current_user.id]), each_serializer: TopicTrackingStateSerializer)
+      store_preloaded("topicTrackingStates", MultiJson.dump(serializer))
+    end
+    store_preloaded("siteSettings", SiteSetting.client_settings_json)
   end
 
 
@@ -254,14 +257,6 @@ class ApplicationController < ActionController::Base
       Rack::MiniProfiler.authorize_request
     end
 
-    def requires_parameters(*required)
-      required.each do |p|
-        raise Discourse::InvalidParameters.new(p) unless params.has_key?(p)
-      end
-    end
-
-    alias :requires_parameter :requires_parameters
-
     def store_incoming_links
       IncomingLink.add(request,current_user) unless request.xhr?
     end
@@ -278,13 +273,18 @@ class ApplicationController < ActionController::Base
       raise Discourse::NotLoggedIn.new unless current_user.present?
     end
 
+    def redirect_to_login_if_required
+      redirect_to :login if SiteSetting.login_required? && !current_user
+    end
+
     def render_not_found_page(status=404)
       f = Topic.where(deleted_at: nil, archetype: "regular")
       @latest = f.order('views desc').take(10)
       @recent = f.order('created_at desc').take(10)
       @slug =  params[:slug].class == String ? params[:slug] : ''
+      @slug =  (params[:id].class == String ? params[:id] : '') if @slug.blank?
       @slug.gsub!('-',' ')
-      render status: status, layout: 'no_js', template: '/exceptions/not_found'
+      render status: status, layout: 'no_js', formats: [:html], template: '/exceptions/not_found'
     end
 
 end

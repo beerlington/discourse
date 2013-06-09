@@ -8,8 +8,6 @@ class PostAction < ActiveRecord::Base
   include RateLimiter::OnCreateRecord
   include Trashable
 
-  attr_accessible :post_action_type_id, :post_id, :user_id, :post, :user, :post_action_type, :message, :related_post_id, :staff_took_action
-
   belongs_to :post
   belongs_to :user
   belongs_to :post_action_type
@@ -18,6 +16,8 @@ class PostAction < ActiveRecord::Base
   rate_limit :post_action_rate_limiter
 
   validate :message_quality
+
+  scope :spam_flags, -> { where(post_action_type_id: PostActionType.types[:spam]) }
 
   def self.update_flagged_posts_count
     posts_flagged_count = PostAction.joins(post: :topic)
@@ -247,6 +247,8 @@ class PostAction < ActiveRecord::Base
         end
       end
     end
+
+    SpamRulesEnforcer.enforce!(post.user) if post_action_type == :spam
   end
 
   def self.flagged_posts_report(filter)

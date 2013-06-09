@@ -21,19 +21,18 @@ class TopicsController < ApplicationController
 
   before_filter :consider_user_for_promotion, only: :show
 
-  skip_before_filter :check_xhr, only: [:avatar, :show, :feed, :redirect_to_show]
+  skip_before_filter :check_xhr, only: [:avatar, :show, :feed]
   caches_action :avatar, cache_path: Proc.new {|c| "#{c.params[:post_number]}-#{c.params[:topic_id]}" }
-
-  def redirect_to_show
-    topic_query = ((num = params[:id].to_i) > 0 and num.to_s == params[:id].to_s) ? Topic.where(id: num) : Topic.where(slug: params[:id])
-    topic = topic_query.includes(:category).first
-    raise Discourse::NotFound unless topic
-    redirect_to topic.relative_url
-  end
 
   def show
     opts = params.slice(:username_filters, :best_of, :page, :post_number, :posts_before, :posts_after, :best)
-    @topic_view = TopicView.new(params[:id] || params[:topic_id], current_user, opts)
+    begin
+      @topic_view = TopicView.new(params[:id] || params[:topic_id], current_user, opts)
+    rescue Discourse::NotFound
+      topic = Topic.where(slug: params[:id]).first if params[:id]
+      raise Discourse::NotFound unless topic
+      return redirect_to(topic.relative_url)
+    end
 
     raise Discourse::NotFound if @topic_view.posts.blank? && !(opts[:best].to_i > 0)
 
@@ -78,7 +77,8 @@ class TopicsController < ApplicationController
   end
 
   def similar_to
-    requires_parameters(:title, :raw)
+    params.require(:title)
+    params.require(:raw)
     title, raw = params[:title], params[:raw]
 
     raise Discourse::InvalidParameters.new(:title) if title.length < SiteSetting.min_title_similar_length
@@ -89,7 +89,8 @@ class TopicsController < ApplicationController
   end
 
   def status
-    requires_parameters(:status, :enabled)
+    params.require(:status)
+    params.require(:enabled)
 
     raise Discourse::InvalidParameters.new(:status) unless %w(visible closed pinned archived).include?(params[:status])
     @topic = Topic.where(id: params[:topic_id].to_i).first
@@ -115,11 +116,10 @@ class TopicsController < ApplicationController
   end
 
   def autoclose
-    requires_parameter(:auto_close_days)
+    raise Discourse::InvalidParameters.new(:auto_close_days) unless params.has_key?(:auto_close_days)
     @topic = Topic.where(id: params[:topic_id].to_i).first
     guardian.ensure_can_moderate!(@topic)
-    @topic.auto_close_days = params[:auto_close_days]
-    @topic.auto_close_user = current_user
+    @topic.set_auto_close(params[:auto_close_days], current_user)
     @topic.save
     render nothing: true
   end
@@ -136,7 +136,7 @@ class TopicsController < ApplicationController
   end
 
   def invite
-    requires_parameter(:user)
+    params.require(:user)
     topic = Topic.where(id: params[:topic_id]).first
     guardian.ensure_can_invite_to!(topic)
 
@@ -154,7 +154,7 @@ class TopicsController < ApplicationController
   end
 
   def merge_topic
-    requires_parameters(:destination_topic_id)
+    params.require(:destination_topic_id)
 
     topic = Topic.where(id: params[:topic_id]).first
     guardian.ensure_can_move_posts!(topic)
@@ -168,7 +168,7 @@ class TopicsController < ApplicationController
   end
 
   def move_posts
-    requires_parameters(:post_ids)
+    params.require(:post_ids)
 
     topic = Topic.where(id: params[:topic_id]).first
     guardian.ensure_can_move_posts!(topic)
