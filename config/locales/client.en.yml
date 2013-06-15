@@ -8,9 +8,6 @@
 en:
   js:
     dates:
-      short_date_no_year: "D MMM"
-      short_date: "D MMM, YYYY"
-      long_date: "MMMM D, YYYY h:mma"
       tiny:
         half_a_minute: "< 1m"
         less_than_x_seconds:
@@ -1083,11 +1080,13 @@ en:
         sent_test: "sent!"
         delivery_method: "Delivery Method"
         preview_digest: "Preview Digest"
+        preview_digest_desc: "This is a tool for previewing the content of the digest emails sent from your forum."
         refresh: "Refresh"
         format: "Format"
         html: "html"
         text: "text"
         last_seen_user: "Last Seen User:"
+        reply_key: "Reply Key"
 
       impersonate:
         title: "Impersonate User"
@@ -1173,6 +1172,8 @@ en:
         deactivate_failed: "There was a problem deactivating the user."
         unblock_failed: 'There was a problem unblocking the user.'
         block_failed: 'There was a problem blocking the user.'
+        deactivate_explanation: "A deactivated user must validate their email again before logging in."
+        banned_explanation: "A banned user can't log in."
         block_explanation: "A blocked user can't post or start topics."
 
 
@@ -1185,3 +1186,4 @@ en:
         show_overriden: 'Only show overridden'
         title: 'Settings'
         reset: 'reset to default'
+        none: 'none'

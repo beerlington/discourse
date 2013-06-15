@@ -4,8 +4,10 @@ gem 'active_model_serializers', git: 'https://github.com/rails-api/active_model_
 
 # we had issues with latest, stick to the rev till we figure this out
 # PR that makes it all hang together welcome
-gem 'ember-rails', git: 'https://github.com/emberjs/ember-rails.git', ref: '57bbe32'
-gem 'barber', '0.3.0'
+gem 'ember-rails'
+gem 'ember-source', '1.0.0.rc5' # or the version you need
+gem 'handlebars-source', '1.0.0.rc4' # or the version you need
+gem 'barber'
 
 gem 'vestal_versions', git: 'https://github.com/zhangyuan/vestal_versions'
 
@@ -30,6 +32,8 @@ gem 'newrelic_rpm'
 
 gem 'capistrano', require: nil
 gem 'capistrano-rbenv', require: nil
+
+gem 'email_reply_parser'
 
 # note: for image_optim to correctly work you need
 # sudo apt-get install -y advancecomp gifsicle jpegoptim libjpeg-progs optipng pngcrush
@@ -69,6 +73,7 @@ gem 'strong_parameters' # remove when we upgrade to Rails 4
 gem 'therubyracer', require: 'v8'
 gem 'thin'
 gem 'diffy', require: false
+gem 'highline', require: false
 
 # Gem that enables support for plugins. It is required.
 gem 'discourse_plugin', path: 'vendor/gems/discourse_plugin'
@@ -101,6 +106,7 @@ group :test, :development do
   gem 'guard-jshint-on-rails', require: false
   gem 'certified', require: false
   gem 'fabrication', require: false
+  gem 'qunit-rails'
   gem 'guard-jasmine', require: false
   gem 'guard-rspec', require: false
   gem 'guard-spork', require: false

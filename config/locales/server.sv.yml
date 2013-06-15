@@ -352,9 +352,6 @@ sv:
     queue_jobs: "Köa diverse jobb i sidekiq, om urkryssat så körs köer infogat"
     crawl_images: "Aktivera hämtning av bilder från tredjepartskällor för att infoga bredd och höjd"
     ninja_edit_window: "Antal sekunder efter ett inlägg när en ändring inte skapar en ny version"
-    enable_imgur: "Aktivera imgur.coms API för uppladdning, sparar inte filer lokalt"
-    imgur_api_key: "Din API-nyckel för imgur.com, krävs för att bilduppladdningen ska funka"
-    imgur_endpoint: "Ändpunkt för uppladdning av bilder till imgur.com"
     max_image_width: "Maxbredd för bilder i ett inlägg"
     category_featured_topics: "Antal visade trådar per kategori på sidan /categories"
     add_rel_nofollow_to_user_content: "Lägg till rel nofollow på allt användargenererat innehåll, förutom interna länkar (inkluderat förälderdomäner) så kräver en ändring av detta att du uppdaterar all bakad markdown"
@@ -735,7 +732,7 @@ sv:
       subject_template: "Import completed successfully"
       text_body_template: "The import was successful."
 
-  unsubscribe_link: "If you'd like to unsubscribe from these emails, visit your [user preferences](%{user_preferences_url})."
+  unsubscribe_link: "To unsubscribe from these emails, visit your [user preferences](%{user_preferences_url})."
 
   user_notifications:
     unsubscribe:
@@ -798,7 +795,7 @@ sv:
       subject_template: "[%{site_name}] Forum Activity for %{date}"
       new_activity: "New activity on your topics and posts:"
       new_topics: "New topics:"
-      unsubscribe: "This summary email is sent as a courtesy notification from %{site_link} when we haven't seen you in a while.\nIf you'd like to turn it off or change your email preferences, %{unsubscribe_link}."
+      unsubscribe: "This summary email is sent as a courtesy notification from %{site_link} when we haven't seen you in a while.\nTo turn it off or change your email preferences, %{unsubscribe_link}."
       click_here: "click here"
       from: "%{site_name} digest"
 
