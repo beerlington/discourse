@@ -106,7 +106,7 @@ Discourse.TopicView = Discourse.View.extend(Discourse.Scrolling, {
     this.resetExamineDockCache();
 
     // this happens after route exit, stuff could have trickled in
-    this.set('controller.controllers.header.showExtraInfo', false)
+    this.set('controller.controllers.header.showExtraInfo', false);
   },
 
   didInsertElement: function(e) {
@@ -127,16 +127,9 @@ Discourse.TopicView = Discourse.View.extend(Discourse.Scrolling, {
     this.updatePosition(true);
   },
 
-  debounceLoadSuggested: Discourse.debounce(function(lookup){
-    var suggested = this.get('topic.suggested_topics');
+  debounceLoadSuggested: Discourse.debounce(function(){
+    if (this.get('isDestroyed') || this.get('isDestroying')) { return; }
 
-    Discourse.TopicList.loadTopics(lookup, "").then(function(topics){
-      suggested.clear();
-      suggested.pushObjects(topics);
-    });
-  }, 1000),
-
-  hasNewSuggested: function(){
     var incoming = this.get('topicTrackingState.newIncoming');
     var suggested = this.get('topic.suggested_topics');
     var topicId = this.get('topic.id');
@@ -154,9 +147,15 @@ Discourse.TopicView = Discourse.View.extend(Discourse.Scrolling, {
         .first(5)
         .value();
 
-
-      this.debounceLoadSuggested(lookup);
+      Discourse.TopicList.loadTopics(lookup, "").then(function(topics){
+        suggested.clear();
+        suggested.pushObjects(topics);
+      });
     }
+  }, 1000),
+
+  hasNewSuggested: function(){
+    this.debounceLoadSuggested();
   }.observes('topicTrackingState.incomingCount'),
 
   // Triggered whenever any posts are rendered, debounced to save over calling
@@ -389,7 +388,10 @@ Discourse.TopicView = Discourse.View.extend(Discourse.Scrolling, {
 
   nonUrgentPositionUpdate: Discourse.debounce(function(opts) {
     Discourse.ScreenTrack.instance().scrolled();
-    this.set('controller.currentPost', opts.currentPost);
+    var model = this.get('controller.model');
+    if (model) {
+      this.set('controller.currentPost', opts.currentPost);
+    }
   },500),
 
   scrolled: function(){

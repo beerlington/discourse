@@ -69,7 +69,7 @@ Discourse.Topic = Discourse.Model.extend({
 
   // The last post in the topic
   lastPost: function() {
-    var posts = this.get('posts')
+    var posts = this.get('posts');
     return posts[posts.length-1];
   },
 
@@ -147,6 +147,17 @@ Discourse.Topic = Discourse.Model.extend({
     return Discourse.ajax(this.get('url') + "/status", {
       type: 'PUT',
       data: {status: property, enabled: this.get(property) ? 'true' : 'false' }
+    });
+  },
+
+  removeAllowedUser: function(username) {
+    var allowedUsers = this.get('allowed_users');
+
+    return Discourse.ajax("/t/" + this.get('id') + "/remove-allowed-user", {
+      type: 'PUT',
+      data: { username: username }
+    }).then(function(){
+      allowedUsers.removeObject(allowedUsers.find(function(item){ return item.username === username; }));
     });
   },
 
@@ -274,8 +285,9 @@ Discourse.Topic = Discourse.Model.extend({
         lastPost = post;
       });
 
+      topic.set('allowed_users', Em.A(result.allowed_users));
       topic.set('loaded', true);
-    }
+    };
 
     var errorLoadingTopic = function(result) {
 
@@ -283,22 +295,22 @@ Discourse.Topic = Discourse.Model.extend({
 
       // If the result was 404 the post is not found
       if (result.status === 404) {
-        topic.set('errorTitle', Em.String.i18n('topic.not_found.title'))
+        topic.set('errorTitle', Em.String.i18n('topic.not_found.title'));
         topic.set('message', Em.String.i18n('topic.not_found.description'));
         return;
       }
 
       // If the result is 403 it means invalid access
       if (result.status === 403) {
-        topic.set('errorTitle', Em.String.i18n('topic.invalid_access.title'))
+        topic.set('errorTitle', Em.String.i18n('topic.invalid_access.title'));
         topic.set('message', Em.String.i18n('topic.invalid_access.description'));
         return;
       }
 
       // Otherwise supply a generic error message
-      topic.set('errorTitle', Em.String.i18n('topic.server_error.title'))
+      topic.set('errorTitle', Em.String.i18n('topic.server_error.title'));
       topic.set('message', Em.String.i18n('topic.server_error.description'));
-    }
+    };
 
     // Finally, call our find method
     return Discourse.Topic.find(this.get('id'), {

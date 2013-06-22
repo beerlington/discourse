@@ -27,14 +27,15 @@ class Post < ActiveRecord::Base
   has_many :post_actions
   has_many :topic_links
 
-  has_and_belongs_to_many :upload
+  has_many :post_uploads
+  has_many :uploads, through: :post_uploads
 
   has_one :post_search_data
 
   validates_with ::Validators::PostValidator
 
-  # We can pass a hash of image sizes when saving to prevent crawling those images
-  attr_accessor :image_sizes, :quoted_post_numbers, :no_bump, :invalidate_oneboxes
+  # We can pass several creating options to a post via attributes
+  attr_accessor :image_sizes, :quoted_post_numbers, :no_bump, :invalidate_oneboxes, :cooking_options
 
   SHORT_POST_CHARS = 1200
 
@@ -71,7 +72,7 @@ class Post < ActiveRecord::Base
 
   def raw_hash
     return if raw.blank?
-    Digest::SHA1.hexdigest(raw.gsub(/\s+/, "").downcase)
+    Digest::SHA1.hexdigest(raw.gsub(/\s+/, ""))
   end
 
   def reset_cooked
@@ -409,6 +410,7 @@ end
 #  reply_to_user_id        :integer
 #  percent_rank            :float            default(1.0)
 #  notify_user_count       :integer          default(0), not null
+#  like_score              :integer          default(0), not null
 #
 # Indexes
 #

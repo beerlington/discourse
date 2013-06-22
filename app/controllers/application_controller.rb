@@ -66,23 +66,20 @@ class ApplicationController < ActionController::Base
   end
 
   rescue_from Discourse::NotFound do
-
-    if request.format && request.format.json?
-      render status: 404, layout: false, text: "[error: 'not found']"
-    else
-      render_not_found_page(404)
-    end
-
+    rescue_discourse_actions("[error: 'not found']", 404)
   end
 
   rescue_from Discourse::InvalidAccess do
-    if request.format && request.format.json?
-      render status: 403, layout: false, text: "[error: 'invalid access']"
-    else
-      render_not_found_page(403)
-    end
+    rescue_discourse_actions("[error: 'invalid access']", 403)
   end
 
+  def rescue_discourse_actions(message, error)
+    if request.format && request.format.json?
+      render status: error, layout: false, text: message
+    else
+      render_not_found_page(error)
+    end
+  end
 
   def set_locale
     I18n.locale = SiteSetting.default_locale
@@ -195,7 +192,6 @@ class ApplicationController < ActionController::Base
     user
   end
 
-
   private
 
     def render_json_error(obj)
@@ -243,8 +239,10 @@ class ApplicationController < ActionController::Base
     def check_restricted_access
       # note current_user is defined in the CurrentUser mixin
       if SiteSetting.access_password.present? && cookies[:_access] != SiteSetting.access_password
-        redirect_to request_access_path(return_path: request.fullpath)
-        return false
+        unless api_key_valid?
+          redirect_to request_access_path(return_path: request.fullpath)
+          return false
+        end
       end
     end
 
@@ -264,7 +262,7 @@ class ApplicationController < ActionController::Base
     def check_xhr
       unless (controller_name == 'forums' || controller_name == 'user_open_ids')
         # bypass xhr check on PUT / POST / DELETE provided api key is there, otherwise calling api is annoying
-        return if !request.get? && request["api_key"] && SiteSetting.api_key_valid?(request["api_key"])
+        return if !request.get? && api_key_valid?
         raise RenderEmpty.new unless ((request.format && request.format.json?) || request.xhr?)
       end
     end
@@ -284,6 +282,12 @@ class ApplicationController < ActionController::Base
       @slug =  (params[:id].class == String ? params[:id] : '') if @slug.blank?
       @slug.gsub!('-',' ')
       render status: status, layout: 'no_js', formats: [:html], template: '/exceptions/not_found'
+    end
+
+    protected
+
+    def api_key_valid?
+      request["api_key"] && SiteSetting.api_key_valid?(request["api_key"])
     end
 
 end

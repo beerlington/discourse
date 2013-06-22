@@ -51,7 +51,7 @@ class UsersController < ApplicationController
       u.new_topic_duration_minutes = params[:new_topic_duration_minutes].to_i if params[:new_topic_duration_minutes]
 
       [:email_digests, :email_direct, :email_private_messages,
-       :external_links_in_new_tab, :enable_quoting].each do |i|
+       :external_links_in_new_tab, :enable_quoting, :dynamic_favicon].each do |i|
         if params[i].present?
           u.send("#{i.to_s}=", params[i] == 'true')
         end
@@ -146,7 +146,7 @@ class UsersController < ApplicationController
   end
 
   def create
-    return fake_success_reponse if suspicious? params
+    return fake_success_response if suspicious? params
 
     user = User.new_from_params(params)
 
@@ -337,7 +337,7 @@ class UsersController < ApplicationController
       honeypot_or_challenge_fails?(params) || SiteSetting.invite_only?
     end
 
-    def fake_success_reponse
+    def fake_success_response
       render(
         json: {
           success: true,

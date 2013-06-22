@@ -223,7 +223,7 @@ Handlebars.registerHelper('editDate', function(property, options) {
 **/
 Ember.Handlebars.registerHelper('percentile', function(property, options) {
   var percentile = Ember.Handlebars.get(this, property, options);
-  return Math.round((1.0 - percentile) * 100)
+  return Math.round((1.0 - percentile) * 100);
 });
 
 /**
@@ -236,7 +236,7 @@ Ember.Handlebars.registerHelper('float', function(property, options) {
   var x = Ember.Handlebars.get(this, property, options);
   if (!x) return "0";
   if (Math.round(x) === x) return x;
-  return x.toFixed(3)
+  return x.toFixed(3);
 });
 
 /**
@@ -272,7 +272,7 @@ Handlebars.registerHelper('number', function(property, options) {
   @for Handlebars
 **/
 Handlebars.registerHelper('date', function(property, options) {
-  var leaveAgo, val;
+  var leaveAgo;
   if (property.hash) {
     if (property.hash.leaveAgo) {
       leaveAgo = property.hash.leaveAgo === "true";
@@ -281,11 +281,11 @@ Handlebars.registerHelper('date', function(property, options) {
       property = property.hash.path;
     }
   }
-  val = Ember.Handlebars.get(this, property, options);
-  var date = null;
+  var val = Ember.Handlebars.get(this, property, options);
   if (val) {
-    date = new Date(val);
+    var date = new Date(val);
+    return new Handlebars.SafeString(Discourse.Formatter.autoUpdatingRelativeAge(date, {format: 'medium', leaveAgo: leaveAgo}));
   }
-  return new Handlebars.SafeString(Discourse.Formatter.autoUpdatingRelativeAge(date, {format: 'medium', leaveAgo: leaveAgo}));
+
 });
 

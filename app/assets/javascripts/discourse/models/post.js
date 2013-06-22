@@ -64,13 +64,15 @@ Discourse.Post = Discourse.Model.extend({
     } else {
       if (this.get('read')) {
         result += ' seen';
+      } else {
+        result += ' unseen';
       }
     }
     return result;
   }.property('read', 'topic.last_read_post_number', 'bookmarked'),
 
   // Custom tooltips for the bookmark icons
-  bookmarkTooltip: (function() {
+  bookmarkTooltip: function() {
     var topic;
     if (this.get('bookmarked')) return Em.String.i18n('bookmarks.created');
     if (!this.get('read')) return "";
@@ -79,7 +81,7 @@ Discourse.Post = Discourse.Model.extend({
       return Em.String.i18n('bookmarks.last_read');
     }
     return Em.String.i18n('bookmarks.not_bookmarked');
-  }).property('read', 'topic.last_read_post_number', 'bookmarked'),
+  }.property('read', 'topic.last_read_post_number', 'bookmarked'),
 
   bookmarkedChanged: function() {
     var post = this;
@@ -260,8 +262,8 @@ Discourse.Post = Discourse.Model.extend({
     // We don't show replies if there aren't any
     if (reply_count === 0) return false;
 
-    // Always show replies if the setting `supress_reply_directly_below` is false.
-    if (!Discourse.SiteSettings.supress_reply_directly_below) return true;
+    // Always show replies if the setting `suppress_reply_directly_below` is false.
+    if (!Discourse.SiteSettings.suppress_reply_directly_below) return true;
 
     // Always show replies if there's more than one
     if (reply_count > 1) return true;
@@ -293,7 +295,7 @@ Discourse.Post.reopenClass({
   create: function(obj, topic) {
     var result = this._super(obj);
     this.createActionSummary(result);
-    if (obj.reply_to_user) {
+    if (obj && obj.reply_to_user) {
       result.set('reply_to_user', Discourse.User.create(obj.reply_to_user));
     }
     result.set('topic', topic);
