@@ -77,7 +77,7 @@ test("Quotes", function() {
                 "<p>1</p><aside class='quote' data-post=\"1\" >\n  <div class='title'>\n    <div class='quote-controls'></div>\n" +
                 "  \n  bob\n  said:\n  </div>\n  <blockquote>my quote</blockquote>\n</aside>\n<p> <br>\n2</p>",
                 "includes no avatar if none is found");
-});
+}); 
 
 test("Mentions", function() {
   cookedOptions("Hello @sam", { mentionLookup: (function() { return true; }) },
@@ -119,3 +119,10 @@ test("SanitizeHTML", function() {
   equal(sanitizeHtml("<div><p class=\"funky\" wrong='1'>hello</p></div>"), "<div><p class=\"funky\">hello</p></div>");
 
 });
+
+// TODO
+// test("with BBCode", function() {
+//   cooked("[img]http://eviltrout.com/eviltrout.png[/img]",
+//          "<p><img src=\"http://eviltrout.com/eviltrout.png\"></p>",
+//          "BBCode is parsed first");
+// });

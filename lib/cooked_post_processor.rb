@@ -22,7 +22,7 @@ class CookedPostProcessor
   end
 
   def post_process_images
-    images = @doc.search("img")
+    images = @doc.css("img") - @doc.css(".onebox-result img")
     return unless images.present?
 
     images.each do |img|
@@ -85,8 +85,12 @@ class CookedPostProcessor
   end
 
   def get_upload_from_url(url)
-    if Upload.has_been_uploaded?(url) && m = Upload.uploaded_regex.match(url)
-      Upload.where("id = ?", m[:upload_id]).first
+    if Upload.has_been_uploaded?(url)
+      if m = LocalStore.uploaded_regex.match(url)
+        Upload.where(id: m[:upload_id]).first
+      elsif Upload.is_on_s3?(url)
+        Upload.where(url: url).first
+      end
     end
   end
 
@@ -122,21 +126,28 @@ class CookedPostProcessor
 
     # not a hyperlink so we can apply
     img['src'] = upload.thumbnail_url if (upload && upload.thumbnail_url.present?)
-
+    # first, create a div to hold our lightbox
+    lightbox = Nokogiri::XML::Node.new "div", @doc
+    img.add_next_sibling lightbox
+    lightbox.add_child img
+    # then, the link to our larger image
     a = Nokogiri::XML::Node.new "a", @doc
     img.add_next_sibling(a)
     a["href"] = src
     a["class"] = "lightbox"
     a.add_child(img)
+    # then, some overlay informations
+    meta = Nokogiri::XML::Node.new "div", @doc
+    meta["class"] = "meta"
+    img.add_next_sibling meta
 
-    # some overlay informations
     filename = upload ? upload.original_filename : File.basename(src)
     informations = "#{original_width}x#{original_height}"
     informations << " | #{number_to_human_size(upload.filesize)}" if upload
 
-    a.add_child create_span_node("filename", filename)
-    a.add_child create_span_node("informations", informations)
-    a.add_child create_span_node("expand")
+    meta.add_child create_span_node("filename", filename)
+    meta.add_child create_span_node("informations", informations)
+    meta.add_child create_span_node("expand")
     # TODO: download
     # TODO: views-count
 
@@ -160,22 +171,24 @@ class CookedPostProcessor
 
   # Retrieve the image dimensions for a url
   def image_dimensions(url)
-    uri = get_image_uri(url)
-    return unless uri
     w, h = get_size(url)
     ImageSizer.resize(w, h) if w && h
   end
 
   def get_size(url)
-    # we can always crawl our own images
+    # make sure s3 urls have a scheme (otherwise, FastImage will fail)
+    url = "http:" + url if Upload.is_on_s3? (url)
+    return unless is_valid_image_uri? url
+    # we can *always* crawl our own images
     return unless SiteSetting.crawl_images? || Upload.has_been_uploaded?(url)
     @size_cache[url] ||= FastImage.size(url)
   rescue Zlib::BufError # FastImage.size raises BufError for some gifs
   end
 
-  def get_image_uri(url)
+  def is_valid_image_uri?(url)
     uri = URI.parse(url)
-    uri if %w(http https).include?(uri.scheme)
+    %w(http https).include? uri.scheme
+  rescue URI::InvalidURIError
   end
 
   def dirty?

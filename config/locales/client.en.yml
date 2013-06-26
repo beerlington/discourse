@@ -78,6 +78,7 @@ en:
     yes_value: "Yes"
     of_value: "of"
     generic_error: "Sorry, an error has occurred."
+    generic_error_with_reason: "An error occured: %{error}"
     log_in: "Log In"
     age: "Age"
     last_post: "Last Post"
@@ -294,6 +295,8 @@ en:
       avatar:
         title: "Avatar"
         instructions: "We use <a href='https://gravatar.com' target='_blank'>Gravatar</a> for avatars based on your email"
+      title:
+        title: "Title"
 
       filters:
         all: "All"
@@ -361,7 +364,7 @@ en:
       or: "Or"
       authenticating: "Authenticating..."
       awaiting_confirmation: "Your account is awaiting activation, use the forgot password link to issue another activation email."
-      awaiting_approval: "Your account has not been approved by a moderator yet. You will receive an email when it is approved."
+      awaiting_approval: "Your account has not been approved by a staff member yet. You will be sent an email when it is approved."
       not_activated: "You can't log in yet. We previously sent an activation email to you at <b>{{sentTo}}</b>. Please follow the instructions in that email to activate your account."
       resend_activation_email: "Click here to send the activation email again."
       sent_activation_email_again: "We sent another activation email to you at <b>{{currentEmail}}</b>. It might take a few minutes for it to arrive; be sure to check your spam folder."
@@ -388,7 +391,7 @@ en:
         message: "Authenticating with Mozilla Persona (make sure pop up blockers are not enabled)"
 
     composer:
-      posting_not_on_topic: "You are replying to the topic \"{{title}}\", but you are currently viewing a different topic."
+      posting_not_on_topic: "Which topic do you want to reply to?"
       saving_draft_tip: "saving"
       saved_draft_tip: "saved"
       saved_local_draft_tip: "saved locally"
@@ -397,7 +400,7 @@ en:
 
       min_length:
         need_more_for_title: "{{n}} to go for the title"
-        need_more_for_reply: "{{n}} to go for the reply"
+        need_more_for_reply: "{{n}} to go for the post"
 
       error:
         title_missing: "Title is required."
@@ -1166,6 +1169,8 @@ en:
         admin: "Admin?"
         blocked: "Blocked?"
         show_admin_profile: "Admin"
+        edit_title: "Edit Title"
+        save_title: "Save Title"
         refresh_browsers: "Force browser refresh"
         show_public_profile: "Show Public Profile"
         impersonate: 'Impersonate'

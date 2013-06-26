@@ -7,6 +7,7 @@ require_dependency 'discourse'
 require_dependency 'post_destroyer'
 require_dependency 'user_name_suggester'
 require_dependency 'roleable'
+require_dependency 'pretty_text'
 
 class User < ActiveRecord::Base
   include Roleable
@@ -28,6 +29,7 @@ class User < ActiveRecord::Base
   has_many :invites
   has_many :topic_links
 
+  has_one :facebook_user_info, dependent: :destroy
   has_one :twitter_user_info, dependent: :destroy
   has_one :github_user_info, dependent: :destroy
   has_one :cas_user_info, dependent: :destroy
