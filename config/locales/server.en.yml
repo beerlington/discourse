@@ -12,6 +12,8 @@ en:
   time:
     formats:
       short: "%m-%d-%Y"
+      short_no_year: "%B %-d"
+      date_only: "%b %-d, %Y"
 
   title: "Discourse"
   topics: "Topics"
@@ -394,6 +396,8 @@ en:
     title_nag: "The title Site Setting is still set to the default value. Please update it with your site's title in the <a href='/admin/site_settings'>Site Settings</a>."
     consumer_email_warning: "Your site is configured to use Gmail (or another consumer email service) to send email. <a href='http://support.google.com/a/bin/answer.py?hl=en&answer=166852' target='_blank'>Gmail limits how many emails you can send</a>. Consider using an email service provider like mandrill.com to ensure email deliverability."
     access_password_removal: "Your site was using the access_password setting, which has been removed. The login_required and must_approve_users settings have been enabled, which should be used instead. You can change them in the <a href='/admin/site_settings'>Site Settings</a>. Be sure to <a href='/admin/users/list/pending'>approve users in the Pending Users list</a>. (This message will go away after 2 days.)"
+    system_username_warning: "The system_username setting is blank. Please update it in the <a href='/admin/site_settings'>Site Settings</a>. Set it to the username of an admin user who should be the sender of system messages."
+    notification_email_warning: "The notification_email setting is blank. Please update it in the <a href='/admin/site_settings'>Site Settings</a>."
 
   content_types:
     education_new_reply:
@@ -411,12 +415,16 @@ en:
     welcome_invite:
       title: "Welcome: Invited User"
       description: "A private message automatically sent to all new invited users when they accept the invitation from another user to participate."
-
+    privacy_policy:
+      title: "Privacy Policy"
+      description: "Your site's privacy policy. Leave blank for default policy."
+    faq:
+      title: "FAQ"
+      description: "Your site's FAQ. Leave blank for the default FAQ."
     login_required_welcome_message:
       title: "Login Required: Welcome Message"
       description: "Welcome message that is displayed to logged out users when
         the 'login required' setting is enabled."
-
     tos_user_content_license:
       title: "Terms of Service: Content License"
       description: "The text for the Content License section of the Terms of Service."
@@ -610,6 +618,7 @@ en:
     topic_views_heat_medium: "The number of views after which a topic's heat level is medium."
     topic_views_heat_high: "The number of views after which a topic's heat level is high."
 
+    faq_url: "If you have a FAQ hosted elsewhere that you want to use, provide the full URL here."
     tos_url: "If you have a Terms of Service document hosted elsewhere that you want to use, provide the full URL here."
     privacy_policy_url: "If you have a Privacy Policy document hosted elsewhere that you want to use, provide the full URL here."
 
@@ -678,6 +687,7 @@ en:
     active: "Your account is active and ready."
     activate_email: "You're almost done! We sent an activation email to <b>%{email}</b>. Please follow the instructions in the email to activate your account."
     not_activated: "You can't log in yet. We sent an activation email to you. Please follow the instructions in the email to activate your account."
+    banned: "You can't log in until %{date}."
     errors: "%{errors}"
     not_available: "Not available. Try %{suggestion}?"
     something_already_taken: "Something went wrong, perhaps the username or email is already registered. Try the forgot password link."
@@ -1036,6 +1046,7 @@ en:
   deleted: 'deleted'
 
   upload:
+    pasted_image_filename: "Pasted image"
     image:
       fetch_failure: "Sorry, there has been an error while fetching the image."
       unknown_image_type: "Sorry, but the file you tried to upload doesn't appear to be an image."

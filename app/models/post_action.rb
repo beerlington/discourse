@@ -15,8 +15,6 @@ class PostAction < ActiveRecord::Base
 
   rate_limit :post_action_rate_limiter
 
-  validate :message_quality
-
   scope :spam_flags, -> { where(post_action_type_id: PostActionType.types[:spam]) }
 
   def self.update_flagged_posts_count
@@ -183,12 +181,6 @@ class PostAction < ActiveRecord::Base
     end
   end
 
-  def message_quality
-    return if message.blank?
-    sentinel = TextSentinel.title_sentinel(message)
-    errors.add(:message, I18n.t(:is_invalid)) unless sentinel.valid?
-  end
-
   before_create do
     post_action_type_ids = is_flag? ? PostActionType.flag_types.values : post_action_type_id
     raise AlreadyActed if PostAction.where(user_id: user_id,
@@ -327,13 +319,17 @@ class PostAction < ActiveRecord::Base
     posts = post_ids.map{|id| post_lookup[id]}
 
     post_actions = actions.where(:post_id => post_ids)
-                          .select('post_actions.id,
-                                   post_actions.user_id,
-                                   post_action_type_id,
-                                   post_actions.created_at,
-                                   post_actions.post_id,
-                                   post_actions.message')
-                          .to_a
+    # TODO this is so far from optimal, it should not be
+    # selecting all the columns but the includes stops working
+    # with the code below
+    #
+                          # .select('post_actions.id,
+                          #          post_actions.user_id,
+                          #          post_action_type_id,
+                          #          post_actions.created_at,
+                          #          post_actions.post_id,
+                          #          post_actions.message')
+                          # .to_a
 
     post_actions.each do |pa|
       post = post_lookup[pa.post_id]
