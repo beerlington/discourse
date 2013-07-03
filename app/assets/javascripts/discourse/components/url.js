@@ -5,7 +5,7 @@
   @namespace Discourse
   @module Discourse
 **/
-Discourse.URL = {
+Discourse.URL = Em.Object.createWithMixins({
 
   // Used for matching a topic
   TOPIC_REGEXP: /\/t\/([^\/]+)\/(\d+)\/?(\d+)?/,
@@ -23,7 +23,7 @@ Discourse.URL = {
   **/
   router: function() {
     return Discourse.__container__.lookup('router:main');
-  },
+  }.property(),
 
   /**
     Browser aware replaceState. Will only be invoked if the browser supports it.
@@ -43,7 +43,8 @@ Discourse.URL = {
         // while URLs are loading. For example, while a topic loads it sets `currentPost`
         // which triggers a replaceState even though the topic hasn't fully loaded yet!
         Em.run.next(function() {
-          Discourse.URL.router().get('location').replaceURL(path);
+          var location = Discourse.URL.get('router.location');
+          if (location.replaceURL) { location.replaceURL(path); }
         });
     }
   },
@@ -61,9 +62,8 @@ Discourse.URL = {
   routeTo: function(path) {
     var oldPath = window.location.pathname;
     path = path.replace(/https?\:\/\/[^\/]+/, '');
-    /*
-      If the URL is absolute, remove rootURL
-     */
+
+    // If the URL is absolute, remove rootURL
     if (path.match(/^\//)) {
       var rootURL = (Discourse.BaseUri === undefined ? "/" : Discourse.BaseUri);
       rootURL = rootURL.replace(/\/$/, '');
@@ -75,20 +75,28 @@ Discourse.URL = {
       then we want to apply some special logic. If the post_number changes within the
       same topic, use replaceState and instruct our controller to load more posts.
     */
-    var newMatches = this.TOPIC_REGEXP.exec(path);
-    var newTopicId = newMatches ? newMatches[2] : null;
+    var newMatches = this.TOPIC_REGEXP.exec(path),
+        newTopicId = newMatches ? newMatches[2] : null;
+
     if (newTopicId) {
-      var oldMatches = this.TOPIC_REGEXP.exec(oldPath);
-      var oldTopicId = oldMatches ? oldMatches[2] : null;
+      var oldMatches = this.TOPIC_REGEXP.exec(oldPath),
+          oldTopicId = oldMatches ? oldMatches[2] : null;
 
       // If the topic_id is the same
       if (oldTopicId === newTopicId) {
         Discourse.URL.replaceState(path);
-        var topicController = Discourse.__container__.lookup('controller:topic');
-        var opts = { trackVisit: false };
+
+        var topicController = Discourse.__container__.lookup('controller:topic'),
+            opts = {};
+
         if (newMatches[3]) opts.nearPost = newMatches[3];
-        topicController.cancelFilter();
-        topicController.loadPosts(opts);
+        var postStream = topicController.get('postStream');
+        postStream.refresh(opts).then(function() {
+          topicController.setProperties({
+            currentPost: opts.nearPost || 1,
+            progressPosition: opts.nearPost || 1
+          });
+        });
 
         // Abort routing, we have replaced our state.
         return;
@@ -102,10 +110,17 @@ Discourse.URL = {
 
     // Be wary of looking up the router. In this case, we have links in our
     // HTML, say form compiled markdown posts, that need to be routed.
-    var router = this.router();
+    var router = this.get('router');
     router.router.updateURL(path);
     return router.handleURL(path);
   },
+
+  /**
+    Replaces the query parameters in the URL. Use no parameters to clear them.
+
+    @method replaceQueryParams
+  **/
+  queryParams: Em.computed.alias('router.location.queryParams'),
 
   /**
     @private
@@ -131,4 +146,4 @@ Discourse.URL = {
     window.location = Discourse.getURL(url);
   }
 
-};
+});

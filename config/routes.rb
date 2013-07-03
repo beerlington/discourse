@@ -146,7 +146,6 @@ Discourse::Application.routes.draw do
   get 'p/:post_id/:user_id' => 'posts#short_link'
 
   resources :notifications
-  resources :categories
 
   match "/auth/:provider/callback", to: "users/omniauth_callbacks#complete", via: [:get, :post]
   match "/auth/failure", to: "users/omniauth_callbacks#failure", via: [:get, :post]
@@ -168,11 +167,12 @@ Discourse::Application.routes.draw do
   resources :user_actions
   resources :education
 
+  resources :categories, :except => :show
+  get 'category/:id/show' => 'categories#show'
+
   get 'category/:category.rss' => 'list#category_feed', format: :rss, as: 'category_feed'
-  get 'category/:category' => 'list#category'
-  get 'category/:category' => 'list#category'
-  get 'category/:category/more' => 'list#category'
-  get 'categories' => 'categories#index'
+  get 'category/:category' => 'list#category', as: 'category_list'
+  get 'category/:category/more' => 'list#category', as: 'category_list_more'
 
   # We've renamed popular to latest. If people access it we want a permanent redirect.
   get 'popular' => 'list#popular_redirect'
@@ -216,6 +216,7 @@ Discourse::Application.routes.draw do
   get 't/:slug/:topic_id.rss' => 'topics#feed', format: :rss, constraints: {topic_id: /\d+/}
   get 't/:slug/:topic_id' => 'topics#show', constraints: {topic_id: /\d+/}
   get 't/:slug/:topic_id/:post_number' => 'topics#show', constraints: {topic_id: /\d+/, post_number: /\d+/}
+  get 't/:topic_id/posts' => 'topics#posts', constraints: {topic_id: /\d+/}
   post 't/:topic_id/timings' => 'topics#timings', constraints: {topic_id: /\d+/}
   post 't/:topic_id/invite' => 'topics#invite', constraints: {topic_id: /\d+/}
   post 't/:topic_id/move-posts' => 'topics#move_posts', constraints: {topic_id: /\d+/}

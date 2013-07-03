@@ -51,6 +51,7 @@ class SiteSetting < ActiveRecord::Base
   setting(:title_prettify, true)
 
   client_setting(:max_upload_size_kb, 2048)
+  client_setting(:authorized_extensions, '.jpg|.jpeg|.png|.gif')
 
   # settings only available server side
   setting(:auto_track_topics_after, 240000)
@@ -74,7 +75,7 @@ class SiteSetting < ActiveRecord::Base
   setting(:create_thumbnails, false)
   client_setting(:category_featured_topics, 6)
   setting(:topics_per_page, 30)
-  setting(:posts_per_page, 20)
+  client_setting(:posts_per_page, 20)
   setting(:invite_expiry_days, 14)
   setting(:active_user_rate_limit_secs, 60)
   setting(:previous_visit_timeout_hours, 1)
