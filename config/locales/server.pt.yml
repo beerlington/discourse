@@ -63,7 +63,7 @@ pt:
               cant_send_pm: "Desculpa, não podes enviar uma mensagem privada para esse utilizador."
 
   user_profile:
-    no_info_me: "<div class='missing-profile'>o campo Sobre mim do teu perfil está em branco, <a href='/users/%{username_lower}/preferences'>gostavas de o completar?</a></div>"
+    no_info_me: "<div class='missing-profile'>o campo Sobre mim do teu perfil está em branco, <a href='/users/%{username_lower}/preferences/about-me'>gostavas de o completar?</a></div>"
     no_info_other: "<div class='missing-profile'>%{name} ainda não colocou nada no campo Sobre Mim</div>"
 
   category:
@@ -338,8 +338,6 @@ pt:
     basic_requires_topics_entered: "How many a topics a user needs to have entered to be promoted to basic level"
     basic_requires_read_posts: "How many posts a user needs to have read to be promoted to basic level"
     basic_requires_time_spent_mins: "How many mins a user needs to have spent reading posts to be promoted to basic level"
-
-    auto_link_images_wider_than: "How wide does an image need to be, to be considered for auto link and lightbox treatment"
 
     email_time_window_mins: "How many minutes we wait before sending a user mail, to give them a chance to see it first."
     flush_timings_secs: "How frequently we flush timing data to the server, in seconds."

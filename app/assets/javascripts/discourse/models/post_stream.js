@@ -24,18 +24,14 @@ Discourse.PostStream = Em.Object.extend({
 
     @property hasPosts
   **/
-  hasPosts: function() {
-    return this.get('posts.length') > 0;
-  }.property('posts.length'),
+  hasPosts: Em.computed.gt('posts.length', 0),
 
   /**
     Do we have a stream list of post ids?
 
     @property hasStream
   **/
-  hasStream: function() {
-    return this.get('filteredPostsCount') > 0;
-  }.property('filteredPostsCount'),
+  hasStream: Em.computed.gt('filteredPostsCount', 0),
 
   /**
     Can we append more posts to our current stream?
@@ -43,7 +39,6 @@ Discourse.PostStream = Em.Object.extend({
     @property canAppendMore
   **/
   canAppendMore: Em.computed.and('notLoading', 'hasPosts', 'lastPostNotLoaded'),
-
 
   /**
     Can we prepend more posts to our current stream?
@@ -59,10 +54,19 @@ Discourse.PostStream = Em.Object.extend({
   **/
   firstPostLoaded: function() {
     if (!this.get('hasLoadedData')) { return false; }
-    return !!this.get('posts').findProperty('id', this.get('stream')[0]);
-  }.property('hasLoadedData', 'posts.[]', 'stream.@each'),
+    return !!this.get('posts').findProperty('id', this.get('firstPostId'));
+  }.property('hasLoadedData', 'posts.[]', 'firstPostId'),
 
   firstPostNotLoaded: Em.computed.not('firstPostLoaded'),
+
+  /**
+    Returns the id of the first post in the set
+
+    @property firstPostId
+  **/
+  firstPostId: function() {
+    return this.get('stream')[0];
+  }.property('stream.@each'),
 
   /**
     Returns the id of the last post in the set
@@ -81,7 +85,7 @@ Discourse.PostStream = Em.Object.extend({
   lastPostLoaded: function() {
     if (!this.get('hasLoadedData')) { return false; }
     return !!this.get('posts').findProperty('id', this.get('lastPostId'));
-  }.property('hasLoadedData', 'posts.[]', 'lastPostId'),
+  }.property('hasLoadedData', 'posts.@each.id', 'lastPostId'),
 
   lastPostNotLoaded: Em.computed.not('lastPostLoaded'),
 
@@ -114,14 +118,14 @@ Discourse.PostStream = Em.Object.extend({
     var streamFilters = this.get('streamFilters');
 
     if (streamFilters.filter && streamFilters.filter === "best_of") {
-      return Em.String.i18n("topic.filters.best_of", {
-        n_best_posts: Em.String.i18n("topic.filters.n_best_posts", { count: this.get('filteredPostsCount') }),
-        of_n_posts: Em.String.i18n("topic.filters.of_n_posts", { count: this.get('topic.posts_count') })
+      return I18n.t("topic.filters.best_of", {
+        n_best_posts: I18n.t("topic.filters.n_best_posts", { count: this.get('filteredPostsCount') }),
+        of_n_posts: I18n.t("topic.filters.of_n_posts", { count: this.get('topic.posts_count') })
       });
     } else if (streamFilters.username_filters) {
-      return Em.String.i18n("topic.filters.user", {
-        n_posts: Em.String.i18n("topic.filters.n_posts", { count: this.get('filteredPostsCount') }),
-        by_n_users: Em.String.i18n("topic.filters.by_n_users", { count: streamFilters.username_filters.length })
+      return I18n.t("topic.filters.user", {
+        n_posts: I18n.t("topic.filters.n_posts", { count: this.get('filteredPostsCount') }),
+        by_n_users: I18n.t("topic.filters.by_n_users", { count: streamFilters.username_filters.length })
       });
     }
     return "";
@@ -254,7 +258,7 @@ Discourse.PostStream = Em.Object.extend({
 
       Discourse.URL.set('queryParams', postStream.get('streamFilters'));
     }, function(result) {
-      postStream.errorLoading(result.status);
+      postStream.errorLoading(result);
     });
   },
   hasLoadedData: Em.computed.and('hasPosts', 'hasStream'),
@@ -319,15 +323,19 @@ Discourse.PostStream = Em.Object.extend({
     @param {Discourse.User} the user creating the post
   **/
   stagePost: function(post, user) {
-    var topic = this.get('topic');
 
+    // We can't stage two posts simultaneously
+    if (this.get('stagingPost')) { return false; }
+
+    this.set('stagingPost', true);
+
+    var topic = this.get('topic');
     topic.setProperties({
       posts_count: (topic.get('posts_count') || 0) + 1,
       last_posted_at: new Date(),
       'details.last_poster': user,
       highest_post_number: (topic.get('highest_post_number') || 0) + 1
     });
-    this.set('stagingPost', true);
 
     post.setProperties({
       post_number: topic.get('highest_post_number'),
@@ -339,6 +347,8 @@ Discourse.PostStream = Em.Object.extend({
     if (this.get('lastPostLoaded')) {
       this.appendPost(post);
     }
+
+    return true;
   },
 
   /**
@@ -349,7 +359,7 @@ Discourse.PostStream = Em.Object.extend({
   **/
   commitPost: function(post) {
     this.appendPost(post);
-    this.get('stream').pushObject(post.get('id'));
+    this.get('stream').addObject(post.get('id'));
     this.set('stagingPost', false);
   },
 
@@ -398,6 +408,21 @@ Discourse.PostStream = Em.Object.extend({
   },
 
   /**
+    Removes posts from the stream.
+
+    @method removePosts
+    @param {Array} posts the collection of posts to remove
+  **/
+  removePosts: function(posts) {
+    if (Em.isEmpty(posts)) { return; }
+
+    var postIds = posts.map(function (p) { return p.get('id'); });
+
+    this.get('stream').removeObjects(postIds);
+    this.get('posts').removeObjects(posts);
+  },
+
+  /**
     Returns a post from the identity map if it's been inserted.
 
     @method findLoadedPost
@@ -425,7 +450,7 @@ Discourse.PostStream = Em.Object.extend({
     var lastPostLoaded = this.get('lastPostLoaded');
 
     if (this.get('stream').indexOf(postId) === -1) {
-      this.get('stream').pushObject(postId);
+      this.get('stream').addObject(postId);
       if (lastPostLoaded) { this.appendMore(); }
     }
   },
@@ -592,6 +617,7 @@ Discourse.PostStream = Em.Object.extend({
     return this.get('stream').indexOf(post.get('id'));
   },
 
+
   /**
     @private
 
@@ -602,7 +628,8 @@ Discourse.PostStream = Em.Object.extend({
     @param {Integer} status the HTTP status code
     @param {Discourse.Topic} topic The topic instance we were trying to load
   **/
-  errorLoading: function(status) {
+  errorLoading: function(result) {
+    var status = result.status;
 
     var topic = this.get('topic');
     topic.set('loadingFilter', false);
@@ -610,21 +637,21 @@ Discourse.PostStream = Em.Object.extend({
 
     // If the result was 404 the post is not found
     if (status === 404) {
-      topic.set('errorTitle', Em.String.i18n('topic.not_found.title'));
-      topic.set('message', Em.String.i18n('topic.not_found.description'));
+      topic.set('errorTitle', I18n.t('topic.not_found.title'));
+      topic.set('errorBodyHtml', result.responseText);
       return;
     }
 
     // If the result is 403 it means invalid access
     if (status === 403) {
-      topic.set('errorTitle', Em.String.i18n('topic.invalid_access.title'));
-      topic.set('message', Em.String.i18n('topic.invalid_access.description'));
+      topic.set('errorTitle', I18n.t('topic.invalid_access.title'));
+      topic.set('message', I18n.t('topic.invalid_access.description'));
       return;
     }
 
     // Otherwise supply a generic error message
-    topic.set('errorTitle', Em.String.i18n('topic.server_error.title'));
-    topic.set('message', Em.String.i18n('topic.server_error.description'));
+    topic.set('errorTitle', I18n.t('topic.server_error.title'));
+    topic.set('message', I18n.t('topic.server_error.description'));
   }
 
 });

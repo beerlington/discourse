@@ -9,6 +9,7 @@
 Discourse.TopicFromParamsRoute = Discourse.Route.extend({
 
   setupController: function(controller, params) {
+
     params = params || {};
     params.track_visit = true;
 
@@ -30,19 +31,21 @@ Discourse.TopicFromParamsRoute = Discourse.Route.extend({
       }
     }
 
-    var topicController = this.controllerFor('topic');
-    postStream.refresh(params).then(function () {
+    var topicController = this.controllerFor('topic'),
+        composerController = this.controllerFor('composer');
 
+    postStream.refresh(params).then(function () {
       // The post we requested might not exist. Let's find the closest post
       var closest = postStream.closestPostNumberFor(params.nearPost) || 1;
 
       topicController.setProperties({
         currentPost: closest,
-        progressPosition: closest
+        progressPosition: closest,
+        enteredAt: new Date().getTime()
       });
 
       if (topic.present('draft')) {
-        Discourse.openComposer({
+        composerController.open({
           draft: Discourse.Draft.getLocal(topic.get('draft_key'), topic.get('draft')),
           draftKey: topic.get('draft_key'),
           draftSequence: topic.get('draft_sequence'),
@@ -51,8 +54,6 @@ Discourse.TopicFromParamsRoute = Discourse.Route.extend({
         });
       }
     });
-
-
   }
 
 });

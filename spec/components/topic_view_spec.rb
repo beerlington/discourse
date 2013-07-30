@@ -3,7 +3,7 @@ require 'topic_view'
 
 describe TopicView do
 
-  let(:topic) { Fabricate(:topic) }
+  let(:topic) { create_topic }
   let(:coding_horror) { Fabricate(:coding_horror) }
   let(:first_poster) { topic.user }
 
@@ -18,11 +18,22 @@ describe TopicView do
     lambda { topic_view }.should raise_error(Discourse::InvalidAccess)
   end
 
+  it "handles deleted topics" do
+    topic.trash!(coding_horror)
+    lambda { TopicView.new(topic.id, coding_horror) }.should raise_error(Discourse::NotFound)
+    coding_horror.stubs(:staff?).returns(true)
+    lambda { TopicView.new(topic.id, coding_horror) }.should_not raise_error
+  end
+
+
   context "with a few sample posts" do
     let!(:p1) { Fabricate(:post, topic: topic, user: first_poster, percent_rank: 1 )}
     let!(:p2) { Fabricate(:post, topic: topic, user: coding_horror, percent_rank: 0.5 )}
     let!(:p3) { Fabricate(:post, topic: topic, user: first_poster, percent_rank: 0 )}
 
+    let(:moderator) { Fabricate(:moderator) }
+    let(:admin) { Fabricate(:admin)
+    }
     it "it can find the best responses" do
 
       best2 = TopicView.new(topic.id, coding_horror, best: 2)
@@ -61,6 +72,21 @@ describe TopicView do
       # 0 means ignore
       best = TopicView.new(topic.id, nil, best: 99, bypass_trust_level_score: 0, min_trust_level: coding_horror.trust_level + 1)
       best.posts.count.should == 0
+
+      # If we restrict to posts a moderator liked, return none
+      best = TopicView.new(topic.id, nil, best: 99, only_moderator_liked: true)
+      best.posts.count.should == 0
+
+      # It doesn't count likes from admins
+      PostAction.act(admin, p3, PostActionType.types[:like])
+      best = TopicView.new(topic.id, nil, best: 99, only_moderator_liked: true)
+      best.posts.count.should == 0
+
+      # It should find the post liked by the moderator
+      PostAction.act(moderator, p2, PostActionType.types[:like])
+      best = TopicView.new(topic.id, nil, best: 99, only_moderator_liked: true)
+      best.posts.count.should == 1
+
     end
 
 
@@ -83,53 +109,39 @@ describe TopicView do
       let(:path) { "/1234" }
 
       before do
-        topic.expects(:relative_url).returns(path)
-        described_class.any_instance.expects(:find_topic).with(1234).returns(topic)
+        topic.stubs(:relative_url).returns(path)
+        TopicView.any_instance.stubs(:find_topic).with(1234).returns(topic)
       end
 
-      context "without a post number" do
-        context "without a page" do
-          it "generates a canonical path for a topic" do
-            described_class.new(1234, user).canonical_path.should eql(path)
-          end
-        end
-
-        context "with a page" do
-          let(:path_with_page) { "/1234?page=5" }
-
-          it "generates a canonical path for a topic" do
-            described_class.new(1234, user, page: 5).canonical_path.should eql(path_with_page)
-          end
-        end
+      it "generates canonical path correctly" do
+        TopicView.new(1234, user).canonical_path.should eql(path)
+        TopicView.new(1234, user, page: 5).canonical_path.should eql("/1234?page=5")
       end
-      context "with a post number" do
-        let(:path_with_page) { "/1234?page=10" }
-        before { SiteSetting.stubs(:posts_per_page).returns(5) }
 
-        it "generates a canonical path for a topic" do
-          described_class.new(1234, user, post_number: 50).canonical_path.should eql(path_with_page)
-        end
+      it "generates a canonical correctly for paged results" do
+        SiteSetting.stubs(:posts_per_page).returns(5)
+        TopicView.new(1234, user, post_number: 50).canonical_path.should eql("/1234?page=10")
       end
     end
 
     describe "#next_page" do
-      let(:posts) { [stub(post_number: 1), stub(post_number: 2)] }
+      let(:p2) { stub(post_number: 2) }
       let(:topic) do
-        topic = Fabricate(:topic)
-        topic.stubs(:posts).returns(posts)
+        topic = create_topic
         topic.stubs(:highest_post_number).returns(5)
         topic
       end
       let(:user) { Fabricate(:user) }
 
       before do
-        described_class.any_instance.expects(:find_topic).with(1234).returns(topic)
-        described_class.any_instance.stubs(:filter_posts)
+        TopicView.any_instance.expects(:find_topic).with(1234).returns(topic)
+        TopicView.any_instance.stubs(:filter_posts)
+        TopicView.any_instance.stubs(:last_post).returns(p2)
         SiteSetting.stubs(:posts_per_page).returns(2)
       end
 
       it "should return the next page" do
-        described_class.new(1234, user).next_page.should eql(1)
+        TopicView.new(1234, user).next_page.should eql(2)
       end
     end
 
@@ -157,27 +169,23 @@ describe TopicView do
     end
 
     context '.read?' do
-      it 'is unread with no logged in user' do
+      it 'tracks correctly' do
+        # anon has nothing
         TopicView.new(topic.id).read?(1).should be_false
-      end
 
-      it 'makes posts as unread by default' do
+        # random user has nothing
         topic_view.read?(1).should be_false
-      end
 
-      it 'knows a post is read when it has a PostTiming' do
-        PostTiming.create(topic: topic, user: coding_horror, post_number: 1, msecs: 1000)
-        topic_view.read?(1).should be_true
+        # a real user that just read it should have it marked
+        PostTiming.process_timings(coding_horror, topic.id, 1, [[1,1000]])
+        TopicView.new(topic.id, coding_horror).read?(1).should be_true
+        TopicView.new(topic.id, coding_horror).topic_user.should be_present
       end
     end
 
     context '.topic_user' do
       it 'returns nil when there is no user' do
         TopicView.new(topic.id, nil).topic_user.should be_blank
-      end
-
-      it 'returns a record once the user has some data' do
-        TopicView.new(topic.id, coding_horror).topic_user.should be_present
       end
     end
 
@@ -222,12 +230,11 @@ describe TopicView do
     end
 
     describe '#filter_posts_paged' do
-      before { SiteSetting.stubs(:posts_per_page).returns(1) }
+      before { SiteSetting.stubs(:posts_per_page).returns(2) }
 
       it 'returns correct posts for all pages' do
         topic_view.filter_posts_paged(1).should == [p1, p2]
-        topic_view.filter_posts_paged(2).should == [p2, p3]
-        topic_view.filter_posts_paged(4).should == [p5]
+        topic_view.filter_posts_paged(2).should == [p3, p5]
         topic_view.filter_posts_paged(100).should == []
       end
     end
@@ -240,22 +247,26 @@ describe TopicView do
 
       it "snaps to the lower boundary" do
         near_view = topic_view_near(p1)
+        near_view.desired_post.should == p1
         near_view.posts.should == [p1, p2, p3]
       end
 
       it "snaps to the upper boundary" do
         near_view = topic_view_near(p5)
+        near_view.desired_post.should == p5
         near_view.posts.should == [p2, p3, p5]
       end
 
       it "returns the posts in the middle" do
         near_view = topic_view_near(p2)
+        near_view.desired_post.should == p2
         near_view.posts.should == [p1, p2, p3]
       end
 
       it "returns deleted posts to an admin" do
         coding_horror.admin = true
         near_view = topic_view_near(p3)
+        near_view.desired_post.should == p3
         near_view.posts.should == [p2, p3, p4]
       end
 
