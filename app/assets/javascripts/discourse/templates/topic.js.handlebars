@@ -19,9 +19,15 @@
             <h1>
               {{#if details.loaded}}
                 {{topicStatus topic=model}}
-                <a href='{{unbound url}}'>{{{fancy_title}}}</a>
+                <a href='{{unbound url}}'>
+                  {{#if topicSaving}}
+                    {{fancy_title}}
+                  {{else}}
+                    {{{fancy_title}}}
+                  {{/if}}
+                </a>
               {{/if}}
-              {{categoryLink category}}
+              {{boundCategoryLink category}}
 
               {{#if details.can_edit}}
                 <a href='#' {{action editTopic}} class='edit-topic' title='{{i18n edit}}'><i class="icon-pencil"></i></a>

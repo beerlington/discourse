@@ -61,7 +61,7 @@
 
 #user-info {
   width: 240px;
-  margin-right: 30px;
+  margin-right: 20px;
   float: left;
   .summary {
     height: 50px;
@@ -186,7 +186,7 @@
     padding: 6px;
     @include border-radius-all(4px);
     float: left;
-    width: 946px;
+    width: 936px;
     height: 57px;
     margin-left: 150px;
     background-color: white;
@@ -219,12 +219,12 @@
   }
   @include medium-width {
     .about-me {
-      width: 831px;
+      width: 821px;
     }
   }
   @include small-width {
     .about-me {
-      width: 786px;
+      width: 776px;
     }
   }
 }
@@ -321,5 +321,20 @@
 @include small-width {
   #user-activity {
     width: 680px;
+  }
+}
+
+.avatar-selector {
+  label {
+    display: inline-block;
+    margin-right: 10px;
+  }
+  #avatar-input {
+    width: 0;
+    height: 0;
+    overflow: hidden;
+  }
+  .avatar {
+    margin: 5px 10px 5px 0;
   }
 }

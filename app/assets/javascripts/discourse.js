@@ -1,5 +1,6 @@
 /*global Modernizr:true*/
 /*global assetPath:true*/
+/*global Favcount:true*/
 
 /**
   The main Discourse Application
@@ -38,7 +39,7 @@ Discourse = Ember.Application.createWithMixins(Discourse.Ajax, {
     $('title').text(title);
 
     var notifyCount = this.get('notifyCount');
-    if (notifyCount > 0 && !Discourse.User.current('dynamic_favicon')) {
+    if (notifyCount > 0 && !Discourse.User.currentProp('dynamic_favicon')) {
       title = "(" + notifyCount + ") " + title;
     }
     // chrome bug workaround see: http://stackoverflow.com/questions/2952384/changing-the-window-title-when-focussing-the-window-doesnt-work-in-chrome
@@ -49,9 +50,9 @@ Discourse = Ember.Application.createWithMixins(Discourse.Ajax, {
   }.observes('title', 'hasFocus', 'notifyCount'),
 
   faviconChanged: function() {
-    if(Discourse.User.current('dynamic_favicon')) {
-      $.faviconNotify(
-        Discourse.SiteSettings.favicon_url, this.get('notifyCount')
+    if(Discourse.User.currentProp('dynamic_favicon')) {
+      new Favcount(Discourse.SiteSettings.favicon_url).set(
+        this.get('notifyCount')
       );
     }
   }.observes('notifyCount'),
@@ -158,7 +159,7 @@ Discourse = Ember.Application.createWithMixins(Discourse.Ajax, {
     Discourse.User.logout().then(function() {
       // Reloading will refresh unbound properties
       Discourse.KeyValueStore.abandonLocal();
-      window.location.reload();
+      window.location.pathname = Discourse.getURL('/');
     });
   },
 
@@ -198,7 +199,7 @@ Discourse = Ember.Application.createWithMixins(Discourse.Ajax, {
       }), user.notification_channel_position);
 
       bus.subscribe("/categories", function(data){
-        var site = Discourse.Site.instance();
+        var site = Discourse.Site.current();
         _.each(data.categories,function(c){
           site.updateCategory(c);
         });

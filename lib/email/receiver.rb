@@ -90,11 +90,10 @@ module Email
       lines = @body.lines.to_a
       range_end = 0
 
-      email_year =
-      lines.each_with_index do |l, idx|
-
+      email_year = lines.each_with_index do |l, idx|
         break if l =~ /\A\s*\-{3,80}\s*\z/ ||
                  l =~ Regexp.new("\\A\\s*" + I18n.t('user_notifications.previous_discussion') + "\\s*\\Z") ||
+                 (l =~ /via #{SiteSetting.title}(.*)\:$/) ||
                  # This one might be controversial but so many reply lines have years, times and end with a colon.
                  # Let's try it and see how well it works.
                  (l =~ /\d{4}/ && l =~ /\d:\d\d/ && l =~ /\:$/)

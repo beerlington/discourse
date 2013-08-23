@@ -62,7 +62,7 @@ Discourse.FlaggedPost = Discourse.Post.extend({
   }.property('post_actions.@each.name_key'),
 
   canDeleteAsSpammer: function() {
-    return (Discourse.User.current('staff') && this.get('flaggedForSpam') && this.get('user.can_delete_all_posts') && this.get('user.can_be_deleted'));
+    return (Discourse.User.currentProp('staff') && this.get('flaggedForSpam') && this.get('user.can_delete_all_posts') && this.get('user.can_be_deleted'));
   }.property('flaggedForSpam'),
 
   deletePost: function() {
@@ -103,10 +103,13 @@ Discourse.FlaggedPost = Discourse.Post.extend({
 });
 
 Discourse.FlaggedPost.reopenClass({
-  findAll: function(filter) {
+  findAll: function(filter, offset) {
+
+    offset = offset || 0;
+
     var result = Em.A();
     result.set('loading', true);
-    Discourse.ajax('/admin/flags/' + filter + '.json').then(function(data) {
+    return Discourse.ajax('/admin/flags/' + filter + '.json?offset=' + offset).then(function(data) {
       var userLookup = {};
       _.each(data.users,function(user) {
         userLookup[user.id] = Discourse.AdminUser.create(user);
@@ -117,8 +120,8 @@ Discourse.FlaggedPost.reopenClass({
         result.pushObject(f);
       });
       result.set('loading', false);
+      return result;
     });
-    return result;
   }
 });
 

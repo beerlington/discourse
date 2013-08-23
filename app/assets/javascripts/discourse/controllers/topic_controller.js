@@ -141,6 +141,9 @@ Discourse.TopicController = Discourse.ObjectController.extend(Discourse.Selected
 
       var topic = this.get('model');
 
+      // Topic title hasn't been sanitized yet, so the template shouldn't trust it.
+      this.set('topicSaving', true);
+
       // manually update the titles & category
       topic.setProperties({
         title: this.get('newTitle'),
@@ -157,9 +160,10 @@ Discourse.TopicController = Discourse.ObjectController.extend(Discourse.Selected
           title: title,
           fancy_title: fancy_title
         });
-
+        topicController.set('topicSaving', false);
       }, function(error) {
         topicController.set('editingTopic', true);
+        topicController.set('topicSaving', false);
         if (error && error.responseText) {
           bootbox.alert($.parseJSON(error.responseText).errors[0]);
         } else {
@@ -222,7 +226,7 @@ Discourse.TopicController = Discourse.ObjectController.extend(Discourse.Selected
   },
 
   resetRead: function() {
-    Discourse.ScreenTrack.instance().reset();
+    Discourse.ScreenTrack.current().reset();
     this.unsubscribe();
 
     var topicController = this;
@@ -253,8 +257,27 @@ Discourse.TopicController = Discourse.ObjectController.extend(Discourse.Selected
   },
 
   // Toggle the star on the topic
-  toggleStar: function(e) {
+  toggleStar: function() {
     this.get('content').toggleStar();
+  },
+
+  /**
+    Toggle the replies this post is a reply to
+
+    @method showReplyHistory
+  **/
+  toggleReplyHistory: function(post) {
+    var replyHistory = post.get('replyHistory'),
+        topicController = this;
+
+    if (replyHistory.length > 0) {
+      replyHistory.clear();
+    } else {
+      post.set('loadingReplyHistory', true);
+      topicController.get('postStream').findReplyHistory(post).then(function () {
+        post.set('loadingReplyHistory', false);
+      });
+    }
   },
 
   /**
@@ -300,7 +323,7 @@ Discourse.TopicController = Discourse.ObjectController.extend(Discourse.Selected
   replyToPost: function(post) {
     var composerController = this.get('controllers.composer');
     var quoteController = this.get('controllers.quoteButton');
-    var quotedText = Discourse.BBCode.buildQuoteBBCode(quoteController.get('post'), quoteController.get('buffer'));
+    var quotedText = Discourse.Quote.build(quoteController.get('post'), quoteController.get('buffer'));
 
     var topic = post ? post.get('topic') : this.get('model');
 

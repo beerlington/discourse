@@ -28,11 +28,13 @@ class User < ActiveRecord::Base
   has_many :user_visits
   has_many :invites
   has_many :topic_links
+  has_many :uploads
 
   has_one :facebook_user_info, dependent: :destroy
   has_one :twitter_user_info, dependent: :destroy
   has_one :github_user_info, dependent: :destroy
   has_one :cas_user_info, dependent: :destroy
+  has_one :oauth2_user_info, dependent: :destroy
   belongs_to :approved_by, class_name: 'User'
 
   has_many :group_users
@@ -40,6 +42,8 @@ class User < ActiveRecord::Base
   has_many :secure_categories, through: :groups, source: :categories
 
   has_one :user_search_data
+
+  belongs_to :uploaded_avatar, class_name: 'Upload', dependent: :destroy
 
   validates_presence_of :username
   validate :username_validator
@@ -64,6 +68,7 @@ class User < ActiveRecord::Base
 
   scope :blocked, -> { where(blocked: true) } # no index
   scope :banned, -> { where('banned_till IS NOT NULL AND banned_till > ?', Time.zone.now) } # no index
+  scope :not_banned, -> { where('banned_till IS NULL') }
 
   module NewTopicDuration
     ALWAYS = -1
@@ -123,23 +128,18 @@ class User < ActiveRecord::Base
   end
 
   def self.find_by_username_or_email(username_or_email)
-    lower_user = username_or_email.downcase
-    lower_email = Email.downcase(username_or_email)
-
-    users =
-      if username_or_email.include?('@')
-        User.where(email: lower_email)
-      else
-        User.where(username_lower: lower_user)
-      end
-        .to_a
-
-    if users.count > 1
-      raise Discourse::TooManyMatches
-    elsif users.count == 1
-      users[0]
+    conditions = if username_or_email.include?('@')
+      { email: Email.downcase(username_or_email) }
     else
-      nil
+      { username_lower: username_or_email.downcase }
+    end
+
+    users = User.where(conditions).all
+
+    if users.size > 1
+      raise Discourse::TooManyMatches
+    else
+      users.first
     end
   end
 
@@ -220,7 +220,8 @@ class User < ActiveRecord::Base
   end
 
   def saw_notification_id(notification_id)
-    User.where(["seen_notification_id < ?", notification_id]).update_all ["seen_notification_id = ?", notification_id]
+    User.where(["id = ? and seen_notification_id < ?", id, notification_id])
+        .update_all ["seen_notification_id = ?", notification_id]
   end
 
   def publish_notifications_state
@@ -293,45 +294,62 @@ class User < ActiveRecord::Base
     end
   end
 
-  def self.avatar_template(email)
+  def self.gravatar_template(email)
     email_hash = self.email_hash(email)
-    # robohash was possibly causing caching issues
-    # robohash = CGI.escape("http://robohash.org/size_") << "{size}x{size}" << CGI.escape("/#{email_hash}.png")
-    "https://www.gravatar.com/avatar/#{email_hash}.png?s={size}&r=pg&d=identicon"
+    "//www.gravatar.com/avatar/#{email_hash}.png?s={size}&r=pg&d=identicon"
   end
 
   # Don't pass this up to the client - it's meant for server side use
-  # The only spot this is now used is for self oneboxes in open graph data
+  # This is used in
+  #   - self oneboxes in open graph data
+  #   - emails
   def small_avatar_url
-    "https://www.gravatar.com/avatar/#{email_hash}.png?s=60&r=pg&d=identicon"
+    template = avatar_template
+    template.gsub("{size}", "45")
   end
 
-  # return null for local avatars, a template for gravatar
   def avatar_template
-    User.avatar_template(email)
+    if SiteSetting.allow_uploaded_avatars? && use_uploaded_avatar
+      # the avatars might take a while to generate
+      # so return the url of the original image in the meantime
+      uploaded_avatar_template.present? ? uploaded_avatar_template : uploaded_avatar.try(:url)
+    else
+      User.gravatar_template(email)
+    end
   end
-
 
   # Updates the denormalized view counts for all users
   def self.update_view_counts
+
+    # NOTE: we only update the counts for users we have seen in the last hour
+    #  this avoids a very expensive query that may run on the entire user base
+    #  we also ensure we only touch the table if data changes
+
     # Update denormalized topics_entered
-    exec_sql "UPDATE users SET topics_entered = x.c
+    exec_sql "UPDATE users SET topics_entered = X.c
              FROM
             (SELECT v.user_id,
                     COUNT(DISTINCT parent_id) AS c
              FROM views AS v
              WHERE parent_type = 'Topic'
              GROUP BY v.user_id) AS X
-            WHERE x.user_id = users.id"
+            WHERE
+                    X.user_id = users.id AND
+                    X.c <> topics_entered AND
+                    users.last_seen_at > :seen_at
+    ", seen_at: 1.hour.ago
 
     # Update denormalzied posts_read_count
-    exec_sql "UPDATE users SET posts_read_count = x.c
+    exec_sql "UPDATE users SET posts_read_count = X.c
               FROM
               (SELECT pt.user_id,
                       COUNT(*) AS c
                FROM post_timings AS pt
                GROUP BY pt.user_id) AS X
-               WHERE x.user_id = users.id"
+               WHERE X.user_id = users.id AND
+                     X.c <> posts_read_count AND
+                     users.last_seen_at > :seen_at
+    ", seen_at: 1.hour.ago
   end
 
   # The following count methods are somewhat slow - definitely don't use them in a loop.
@@ -505,6 +523,9 @@ class User < ActiveRecord::Base
     end
   end
 
+  def has_uploaded_avatar
+    uploaded_avatar.present?
+  end
 
   protected
 
@@ -527,7 +548,6 @@ class User < ActiveRecord::Base
                             auto_track_topics_after_msecs, TopicUser.notification_levels[:regular], TopicUser.notification_levels[:tracking]])
     end
   end
-
 
   def create_email_token
     email_tokens.create(email: email)
@@ -570,13 +590,13 @@ class User < ActiveRecord::Base
     end
   end
 
-    def send_approval_email
-      Jobs.enqueue(:user_email,
-        type: :signup_after_approval,
-        user_id: id,
-        email_token: email_tokens.first.token
-      )
-    end
+  def send_approval_email
+    Jobs.enqueue(:user_email,
+      type: :signup_after_approval,
+      user_id: id,
+      email_token: email_tokens.first.token
+    )
+  end
 
   private
 
@@ -646,6 +666,9 @@ end
 #  blocked                       :boolean          default(FALSE)
 #  dynamic_favicon               :boolean          default(FALSE), not null
 #  title                         :string(255)
+#  use_uploaded_avatar           :boolean          default(FALSE)
+#  uploaded_avatar_template      :string(255)
+#  uploaded_avatar_id            :integer
 #
 # Indexes
 #
