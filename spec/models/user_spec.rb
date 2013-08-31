@@ -731,15 +731,6 @@ describe User do
     end
   end
 
-  describe '#create_for_email' do
-    let(:subject) { User.create_for_email('walter.white@email.com') }
-    it { should be_present }
-    its(:username) { should == 'walter_white' }
-    its(:name) { should == 'walter_white'}
-    it { should_not be_active }
-    its(:email) { should == 'walter.white@email.com' }
-  end
-
   describe 'email_confirmed?' do
     let(:user) { Fabricate(:user) }
 
@@ -913,7 +904,7 @@ describe User do
 
     context 'when multiple users are found' do
       it 'raises an exception' do
-        user_query = stub(all: [stub, stub])
+        user_query = stub(to_a: [stub, stub])
         User.stubs(:where).with(username_lower: 'bob').returns(user_query)
 
         expect { User.find_by_username_or_email('bob') }.to raise_error(Discourse::TooManyMatches)

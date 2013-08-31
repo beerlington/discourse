@@ -36,7 +36,9 @@ class UserEmailObserver < ActiveRecord::Observer
 
     def enqueue(type)
       return unless notification.user.email_direct?
-      Jobs.enqueue_in(SiteSetting.email_time_window_mins.minutes,
+
+
+      Jobs.enqueue_in(delay,
                      :user_email,
                      type: type,
                      user_id: notification.user_id,
@@ -45,11 +47,15 @@ class UserEmailObserver < ActiveRecord::Observer
 
     def enqueue_private(type)
       return unless (notification.user.email_direct? && notification.user.email_private_messages?)
-      Jobs.enqueue_in(SiteSetting.email_time_window_mins.minutes,
+      Jobs.enqueue_in(delay,
                       :user_email,
                       type: type,
                       user_id: notification.user_id,
                       notification_id: notification.id)
+    end
+
+    def delay
+      SiteSetting.email_time_window_mins.minutes
     end
   end
 
@@ -64,6 +70,7 @@ class UserEmailObserver < ActiveRecord::Observer
   end
 
   private
+
 
   def extract_notification_type(notification)
     Notification.types[notification.notification_type]
