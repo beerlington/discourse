@@ -71,7 +71,7 @@ en:
           other: "%{count} days ago"
     share:
       topic: 'share a link to this topic'
-      post: 'share a link to this post'
+      post: 'share a link to post #%{postNumber}'
       close: 'close'
       twitter: 'share this link on Twitter'
       facebook: 'share this link on Facebook'
@@ -88,12 +88,15 @@ en:
     log_in: "Log In"
     age: "Age"
     last_post: "Last Post"
+    joined: "Joined"
     admin_title: "Admin"
     flags_title: "Flags"
     show_more: "show more"
     links: Links
     faq: "FAQ"
     privacy_policy: "Privacy Policy"
+    mobile_view: "Mobile View"
+    desktop_view: "Desktop View"
     you: "You"
     or: "or"
     now: "just now"
@@ -183,6 +186,7 @@ en:
     user:
       said: "{{username}} said:"
       profile: "Profile"
+      show_profile: "Visit Profile"
       mute: "Mute"
       edit: "Edit Preferences"
       download_archive: "download archive of my posts"
@@ -200,6 +204,7 @@ en:
       change: "change"
       moderator: "{{user}} is a moderator"
       admin: "{{user}} is an admin"
+      deleted: "(deleted)"
 
       messages:
         all: "All"
@@ -281,6 +286,7 @@ en:
 
       email_direct: "Receive an email when someone quotes you, replies to your post, or mentions your @username"
       email_private_messages: "Receive an email when someone sends you a private message"
+      email_always: "Receive email notifications and email digests even if I am active on the forum"
 
       other_settings: "Other"
 
@@ -368,6 +374,7 @@ en:
     private_message_info:
       title: "Private Message"
       invite: "Invite Others..."
+      remove_allowed_user: "Do you really want to remove {{name}} from this private message?"
 
     email: 'Email'
     username: 'Username'
@@ -476,8 +483,8 @@ en:
       link_optional_text: "optional title"
       quote_title: "Blockquote"
       quote_text: "Blockquote"
-      code_title: "Code Sample"
-      code_text: "enter code here"
+      code_title: "Preformatted text"
+      code_text: "enter preformatted text here"
       upload_title: "Upload"
       upload_description: "enter upload description here"
       olist_title: "Numbered List"
@@ -512,22 +519,16 @@ en:
       total_flagged: "total flagged posts"
 
     upload_selector:
-      title: "Upload an image"
-      title_with_attachments: "Upload an image or a file"
-      from_my_computer: "From My Device"
-      from_the_web: "From The Web"
-      add_title: "Add image"
-      add_title_with_attachments: "Add image or file"
-      remote_title: "remote image"
-      remote_title_with_attachments: "remote image or file"
+      title: "Add an image"
+      title_with_attachments: "Add an image or a file"
+      from_my_computer: "From my device"
+      from_the_web: "From the web"
       remote_tip: "enter address of an image in the form http://example.com/image.jpg"
       remote_tip_with_attachments: "enter address of an image or a file in the form http://example.com/file.ext (allowed extensions: {{authorized_extensions}})."
-      local_title: "local image"
-      local_title_with_attachments: "local image or file"
       local_tip: "click to select an image from your device"
       local_tip_with_attachments: "click to select an image or a file from your device (allowed extensions: {{authorized_extensions}})"
-      upload_title: "Upload image"
-      upload_title_with_attachments: "Upload image or file"
+      hint: "(you can also drag & drop into the editor to upload them)"
+      hint_for_chrome: "(you can also drag and drop or paste images into the editor to upload them)"
       uploading: "Uploading"
 
     search:
@@ -576,6 +577,7 @@ en:
       title: Topic Rank Details
 
     topic:
+      filter_to: "Show only the {{post_count}} posts by {{username}} in this topic"
       create_in: 'Create {{categoryName}} Topic'
       create: 'Create Topic'
       create_long: 'Create a new Topic'
@@ -762,6 +764,7 @@ en:
       multi_select:
         select: 'select'
         selected: 'selected ({{count}})'
+        select_replies: 'select +replies'
         delete: delete selected
         cancel: cancel selecting
         description:
@@ -814,6 +817,12 @@ en:
         undelete: "undelete this post"
         share: "share a link to this post"
         more: "More"
+        delete_replies:
+          confirm:
+            one: "Do you also want to delete the direct reply to this post?"
+            other: "Do you also want to delete the {{count}} direct replies to this post?"
+          yes_value: "Yes, delete the replies too"
+          no_value: "No, just this post"
 
       actions:
         flag: 'Flag'
@@ -919,6 +928,7 @@ en:
     category:
       can: 'can&hellip; '
       none: '(no category)'
+      choose: 'Select a category&hellip;'
       edit: 'edit'
       edit_long: "Edit Category"
       edit_uncategorized: "Edit Uncategorized"
@@ -950,6 +960,7 @@ en:
       auto_close_label: "Auto-close topics after:"
       edit_permissions: "Edit Permissions"
       add_permission: "Add Permission"
+      this_year: "this year"
 
     flagging:
       title: 'Why are you flagging this post?'
@@ -1156,6 +1167,8 @@ en:
         long_title: "Site Customizations"
         header: "Header"
         css: "Stylesheet"
+        mobile_header: "Mobile Header"
+        mobile_css: "Mobile Stylesheet"
         override_default: "Do not include standard style sheet"
         enabled: "Enabled?"
         preview: "preview"

@@ -7,20 +7,20 @@ var avatarSelector = Em.Object.create({
 module("Discourse.AvatarSelectorController");
 
 test("avatarTemplate", function() {
-  var avatarSelectorController = controllerFor("avatarSelector");
+  var avatarSelectorController = testController(Discourse.AvatarSelectorController);
   avatarSelectorController.setProperties(avatarSelector);
 
   equal(avatarSelectorController.get("avatarTemplate"),
         avatarSelector.get("gravatar_template"),
         "we are using gravatar by default");
 
-  avatarSelectorController.useUploadedAvatar();
+  avatarSelectorController.send('useUploadedAvatar');
 
   equal(avatarSelectorController.get("avatarTemplate"),
         avatarSelector.get("uploaded_avatar_template"),
         "calling useUploadedAvatar switches to using the uploaded avatar");
 
-  avatarSelectorController.useGravatar();
+  avatarSelectorController.send('useGravatar');
 
   equal(avatarSelectorController.get("avatarTemplate"),
         avatarSelector.get("gravatar_template"),

@@ -71,7 +71,7 @@ zh_CN:
           other: "%{count}天前"
     share:
       topic: '分享一个到本主题的链接'
-      post: '分享一个到本帖的链接'
+      post: '分享一个到#%{postNumber}帖的链接'
       close: '关闭'
       twitter: '分享这个链接到 Twitter'
       facebook: '分享这个链接到 Facebook'
@@ -84,16 +84,19 @@ zh_CN:
     yes_value: "是"
     of_value: "/"
     generic_error: "抱歉，发生了一个错误。"
-    generic_error_with_reason: "发生一个错误：%{error}"
+    generic_error_with_reason: "发生了一个错误：%{error}"
     log_in: "登录"
     age: "时间"
     last_post: "最后一帖"
+    joined: "加入时间："
     admin_title: "管理员"
     flags_title: "报告"
     show_more: "显示更多"
     links: 链接
     faq: "常见问答（FAQ）"
     privacy_policy: "隐私政策"
+    mobile_view: "移动视图"
+    desktop_view: "桌面视图"
     you: "你"
     or: "或"
     now: "刚刚"
@@ -182,13 +185,13 @@ zh_CN:
 
     user:
       said: "{{username}} 说："
-      profile: "介绍信息"
+      profile: "个人简介"
+      show_profile: "访问个人简介"
       mute: "防打扰"
       edit: "修改参数"
       download_archive: "下载我的帖子的存档"
       private_message: "私信"
       private_messages: "消息"
-      private_messages_sent: "已发送消息"
       activity_stream: "活动"
       preferences: "设置"
       bio: "关于我"
@@ -201,6 +204,12 @@ zh_CN:
       change: "修改"
       moderator: "{{user}} 是版主"
       admin: "{{user}} 是管理员"
+      deleted: "（已删除）"
+      
+      messages:
+        all: "所有"
+        mine: "我的"
+        unread: "未读"
 
       change_password:
         success: "（电子邮件已发送）"
@@ -277,6 +286,7 @@ zh_CN:
 
       email_direct: "当有人引用你、回复你或提及你 @username 时发送一封邮件给你"
       email_private_messages: "当有人给你发私信时发送一封邮件给你"
+      email_always: "即使在论坛中是活跃状态也接收电子邮件提醒和摘要"
 
       other_settings: "其它"
 
@@ -364,6 +374,7 @@ zh_CN:
     private_message_info:
       title: "私下交流"
       invite: "邀请其他人……"
+      remove_allowed_user: "是否将{{name}}从本条私信中移除？"
 
     email: '电子邮箱'
     username: '用户名'
@@ -396,6 +407,7 @@ zh_CN:
       authenticating: "验证中……"
       awaiting_confirmation: "你的帐号尚未激活，点击忘记密码链接来重新发送激活邮件。"
       awaiting_approval: "你的帐号尚未被论坛版主批准。一旦你的帐号获得批准，你会收到一封电子邮件。"
+      requires_invite: "抱歉，本论坛仅接受邀请注册。"
       not_activated: "你还不能登录。我们之前在<b>{{sentTo}}</b>发送了一封激活邮件给你。请按照邮件中的介绍来激活你的帐号。"
       resend_activation_email: "点击此处来重新发送激活邮件。"
       sent_activation_email_again: "我们在<b>{{currentEmail}}</b>又发送了一封激活邮件给你，邮件送达可能需要几分钟，有的电子邮箱服务商可能会认为此邮件为垃圾邮件，请检查一下你邮箱的垃圾邮件文件夹。"
@@ -471,8 +483,8 @@ zh_CN:
       link_optional_text: "可选标题"
       quote_title: "引用"
       quote_text: "引用"
-      code_title: "代码"
-      code_text: "在此输入代码"
+      code_title: "预格式化文本"
+      code_text: "在此输入预格式化文本"
       upload_title: "图片"
       upload_description: "在此输入图片描述"
       olist_title: "数字列表"
@@ -503,7 +515,7 @@ zh_CN:
       private_message: "<i class='icon icon-envelope-alt' title='私信'></i> {{username}} 发送给你一条私信：{{link}}"
       invited_to_private_message: "{{username}} 邀请你进行私下交流：{{link}}"
       invitee_accepted: "<i title='已接受你的邀请' class='icon icon-signin'></i> {{username}} 已接受你的邀请"
-      moved_post: "<i title='移动帖子' class='icon icon-arrow-right'></i> {{username}} 已将帖子移动到 {{link}}"
+      moved_post: "<i title='移动帖子' class='icon icon-arrow-right'></i> {{username}} 移动了该帖： {{link}}"
       total_flagged: "被报告帖子的总数"
 
     upload_selector:
@@ -511,18 +523,12 @@ zh_CN:
       title_with_attachments: "上传图片或文件"
       from_my_computer: "来自我的设备"
       from_the_web: "来自网络"
-      add_title: "添加图片"
-      add_title_with_attachments: "添加图片或文件"
-      remote_title: "网络图片"
-      remote_title_with_attachments: "网络图片或文件"
       remote_tip: "输入图片的网址，格式为：http://example.com/image.jpg"
       remote_tip_with_attachments: "输入图片或文件的网址，格式为：http://example.com/file.ext （支持的格式： {{authorized_extensions}}）。"
-      local_title: "本地图片"
-      local_title_with_attachments: "本地图片或文件"
       local_tip: "点击从你的设备中选择一张图片。"
       local_tip_with_attachments: "点击从你的设备中选择图片或文件（支持的格式： {{authorized_extensions}}）。"
-      upload_title: "上传"
-      upload_title_with_attachments: "上传图片或文件"
+      hint: "（你也可以通过拖放至编辑器的方式来上传）" 
+      hint_for_chrome: "（你也可以通过拖放或复制粘帖至编辑器的方式来上传）"
       uploading: "上传图片中"
 
     search:
@@ -571,6 +577,7 @@ zh_CN:
       title: 主题排名详细
 
     topic:
+      filter_to: "只显示本主题中由{{username}}发表的{{post_count}}个帖子"
       create_in: '创建一个 {{categoryName}} 分类的主题'
       create: '创建主题'
       create_long: '创建一个新主题'
@@ -757,6 +764,7 @@ zh_CN:
       multi_select:
         select: '选择'
         selected: '已选择（{{count}}）'
+        select_replies: '选择并回复'
         delete: 删除所选
         cancel: 取消选择
         description:
@@ -809,6 +817,12 @@ zh_CN:
         undelete: "恢复本帖"
         share: "分享一个到本帖的链接"
         more: "更多"
+        delete_replies:
+          confirm:
+            one: "是否同时删除该帖的1条回复？"
+            other: "是否同时删除该帖的{{count}}条回复？"
+          yes_value: "是，删除回复"
+          no_value: "否，仅删除该帖"
 
       actions:
         flag: '报告'
@@ -912,8 +926,9 @@ zh_CN:
           other: "你确定要删除这些帖子吗？"
 
     category:
-      can: 'can&hellip; '
+      can: '能够'
       none: '（未分类）'
+      choose: '选择分类……'
       edit: '编辑'
       edit_long: "编辑分类"
       edit_uncategorized: "编辑未分类的"
@@ -1151,6 +1166,8 @@ zh_CN:
         long_title: "站点定制"
         header: "头部"
         css: "层叠样式表（CSS）"
+        mobile_header: "移动版Header"
+        mobile_css: "移动版样式表"
         override_default: "覆盖缺省值？"
         enabled: "启用？"
         preview: "预览"

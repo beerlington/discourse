@@ -1,13 +1,12 @@
 require 'current_user'
-require 'canonical_url'
+require_dependency 'canonical_url'
 require_dependency 'discourse'
 require_dependency 'custom_renderer'
-require 'archetype'
+require_dependency 'archetype'
 require_dependency 'rate_limiter'
 
 class ApplicationController < ActionController::Base
   include CurrentUser
-
   include CanonicalURL::ControllerExtensions
 
   serialization_scope :guardian
@@ -26,6 +25,7 @@ class ApplicationController < ActionController::Base
     end
   end
 
+  before_filter :set_mobile_view
   before_filter :inject_preview_style
   before_filter :block_if_maintenance_mode
   before_filter :authorize_mini_profiler
@@ -117,6 +117,10 @@ class ApplicationController < ActionController::Base
     end
   end
 
+  def set_mobile_view
+    session[:mobile_view] = params[:mobile_view] if params.has_key?(:mobile_view)
+  end
+
 
   def inject_preview_style
     style = request['preview-style']
@@ -151,34 +155,14 @@ class ApplicationController < ActionController::Base
   end
 
   def can_cache_content?
-    # Don't cache unless we're in production mode
-    return false unless Rails.env.production? || Rails.env == "profile"
-
-    # Don't cache logged in users
-    return false if current_user.present?
-
-    true
+    !current_user.present?
   end
 
   # Our custom cache method
   def discourse_expires_in(time_length)
     return unless can_cache_content?
-    expires_in time_length, public: true
+    Middleware::AnonymousCache.anon_cache(request.env, 1.minute)
   end
-
-  # Helper method - if no logged in user (anonymous), use Rails' conditional GET
-  # support. Should be very fast behind a cache.
-  def anonymous_etag(*args)
-    if can_cache_content?
-      yield if stale?(*args)
-
-      # Add a one minute expiry
-      expires_in 1.minute, public: true
-    else
-      yield
-    end
-  end
-
 
   def fetch_user_from_params
     username_lower = params[:username].downcase
@@ -189,6 +173,16 @@ class ApplicationController < ActionController::Base
 
     guardian.ensure_can_see!(user)
     user
+  end
+
+  def post_ids_including_replies
+    post_ids = params[:post_ids].map {|p| p.to_i}
+    if params[:reply_post_ids]
+      post_ids << PostReply.where(post_id: params[:reply_post_ids].map {|p| p.to_i}).pluck(:reply_id)
+      post_ids.flatten!
+      post_ids.uniq!
+    end
+    post_ids
   end
 
   private

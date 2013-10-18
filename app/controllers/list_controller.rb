@@ -11,6 +11,10 @@ class ListController < ApplicationController
       user = list_target_user
       list = TopicQuery.new(user, list_opts).public_send("list_#{filter}")
       list.more_topics_url = url_for(self.public_send "#{filter}_path".to_sym, list_opts.merge(format: 'json', page: next_page))
+      if [:latest, :hot].include?(filter)
+        @description = SiteSetting.site_description
+        @rss = filter
+      end
 
       respond(list)
     end
@@ -18,14 +22,14 @@ class ListController < ApplicationController
 
   [:latest, :hot].each do |filter|
     define_method("#{filter}_feed") do
-      anonymous_etag(@category) do
-        @title = "#{filter.capitalize} Topics"
-        @link = "#{Discourse.base_url}/#{filter}"
-        @description = I18n.t("rss_description.#{filter}")
-        @atom_link = "#{Discourse.base_url}/#{filter}.rss"
-        @topic_list = TopicQuery.new(current_user).public_send("list_#{filter}")
-        render 'list', formats: [:rss]
-      end
+      discourse_expires_in 1.minute
+
+      @title = "#{filter.capitalize} Topics"
+      @link = "#{Discourse.base_url}/#{filter}"
+      @description = I18n.t("rss_description.#{filter}")
+      @atom_link = "#{Discourse.base_url}/#{filter}.rss"
+      @topic_list = TopicQuery.new(current_user).public_send("list_#{filter}")
+      render 'list', formats: [:rss]
     end
   end
 
@@ -39,7 +43,10 @@ class ListController < ApplicationController
 
   def private_messages
     list_opts = build_topic_list_options
-    list = TopicQuery.new(current_user, list_opts).list_private_messages(fetch_user_from_params)
+    target_user = fetch_user_from_params
+    guardian.ensure_can_see_private_messages!(target_user.id)
+
+    list = TopicQuery.new(current_user, list_opts).list_private_messages(target_user)
     list.more_topics_url = url_for(topics_private_messages_path(list_opts.merge(format: 'json', page: next_page)))
 
     respond(list)
@@ -47,7 +54,10 @@ class ListController < ApplicationController
 
   def private_messages_sent
     list_opts = build_topic_list_options
-    list = TopicQuery.new(current_user, list_opts).list_private_messages_sent(fetch_user_from_params)
+    target_user = fetch_user_from_params
+    guardian.ensure_can_see_private_messages!(target_user.id)
+
+    list = TopicQuery.new(current_user, list_opts).list_private_messages_sent(target_user)
     list.more_topics_url = url_for(topics_private_messages_sent_path(list_opts.merge(format: 'json', page: next_page)))
 
     respond(list)
@@ -55,7 +65,10 @@ class ListController < ApplicationController
 
   def private_messages_unread
     list_opts = build_topic_list_options
-    list = TopicQuery.new(current_user, list_opts).list_private_messages_unread(fetch_user_from_params)
+    target_user = fetch_user_from_params
+    guardian.ensure_can_see_private_messages!(target_user.id)
+
+    list = TopicQuery.new(current_user, list_opts).list_private_messages_unread(target_user)
     list.more_topics_url = url_for(topics_private_messages_unread_path(list_opts.merge(format: 'json', page: next_page)))
 
     respond(list)
@@ -74,6 +87,7 @@ class ListController < ApplicationController
       end
       guardian.ensure_can_see!(@category)
       list = query.list_category(@category)
+      @description = @category.description
     end
 
     list.more_topics_url = url_for(category_list_path(params[:category], page: next_page, format: "json"))
@@ -85,14 +99,14 @@ class ListController < ApplicationController
 
     guardian.ensure_can_see!(@category)
 
-    anonymous_etag(@category) do
-      @title = @category.name
-      @link = "#{Discourse.base_url}/category/#{@category.slug}"
-      @description = "#{I18n.t('topics_in_category', category: @category.name)} #{@category.description}"
-      @atom_link = "#{Discourse.base_url}/category/#{@category.slug}.rss"
-      @topic_list = TopicQuery.new.list_new_in_category(@category)
-      render 'list', formats: [:rss]
-    end
+    discourse_expires_in 1.minute
+
+    @title = @category.name
+    @link = "#{Discourse.base_url}/category/#{@category.slug}"
+    @description = "#{I18n.t('topics_in_category', category: @category.name)} #{@category.description}"
+    @atom_link = "#{Discourse.base_url}/category/#{@category.slug}.rss"
+    @topic_list = TopicQuery.new.list_new_in_category(@category)
+    render 'list', formats: [:rss]
   end
 
   def popular_redirect

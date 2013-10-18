@@ -13,35 +13,36 @@ class User < ActiveRecord::Base
   include Roleable
 
   has_many :posts
-  has_many :notifications
-  has_many :topic_users
+  has_many :notifications, dependent: :destroy
+  has_many :topic_users, dependent: :destroy
   has_many :topics
   has_many :user_open_ids, dependent: :destroy
-  has_many :user_actions
-  has_many :post_actions
-  has_many :email_logs
+  has_many :user_actions, dependent: :destroy
+  has_many :post_actions, dependent: :destroy
+  has_many :email_logs, dependent: :destroy
   has_many :post_timings
-  has_many :topic_allowed_users
+  has_many :topic_allowed_users, dependent: :destroy
   has_many :topics_allowed, through: :topic_allowed_users, source: :topic
-  has_many :email_tokens
+  has_many :email_tokens, dependent: :destroy
   has_many :views
-  has_many :user_visits
-  has_many :invites
-  has_many :topic_links
-  has_many :uploads
+  has_many :user_visits, dependent: :destroy
+  has_many :invites, dependent: :destroy
+  has_many :topic_links, dependent: :destroy
+  has_many :uploads, dependent: :destroy
 
   has_one :facebook_user_info, dependent: :destroy
   has_one :twitter_user_info, dependent: :destroy
   has_one :github_user_info, dependent: :destroy
   has_one :cas_user_info, dependent: :destroy
   has_one :oauth2_user_info, dependent: :destroy
+  has_one :user_stat, dependent: :destroy
   belongs_to :approved_by, class_name: 'User'
 
-  has_many :group_users
+  has_many :group_users, dependent: :destroy
   has_many :groups, through: :group_users
   has_many :secure_categories, through: :groups, source: :categories
 
-  has_one :user_search_data
+  has_one :user_search_data, dependent: :destroy
 
   belongs_to :uploaded_avatar, class_name: 'Upload', dependent: :destroy
 
@@ -60,6 +61,13 @@ class User < ActiveRecord::Base
   after_save :update_tracked_topics
 
   after_create :create_email_token
+  after_create :create_user_stat
+
+  before_destroy do
+    # These tables don't have primary keys, so destroying them with activerecord is tricky:
+    PostTiming.delete_all(user_id: self.id)
+    View.delete_all(user_id: self.id)
+  end
 
   # Whether we need to be sending a system message after creation
   attr_accessor :send_welcome_message
@@ -70,6 +78,8 @@ class User < ActiveRecord::Base
   scope :blocked, -> { where(blocked: true) } # no index
   scope :banned, -> { where('banned_till IS NOT NULL AND banned_till > ?', Time.zone.now) } # no index
   scope :not_banned, -> { where('banned_till IS NULL') }
+  # excluding fake users like the community user
+  scope :real, -> { where('id > 0') }
 
   module NewTopicDuration
     ALWAYS = -1
@@ -150,6 +160,9 @@ class User < ActiveRecord::Base
     key
   end
 
+  def created_topic_count
+    topics.count
+  end
 
   # tricky, we need our bus to be subscribed from the right spot
   def sync_notification_channel_position
@@ -236,6 +249,10 @@ class User < ActiveRecord::Base
     self.password_hash == hash_password(password, salt)
   end
 
+  def new_user?
+    created_at >= 24.hours.ago || trust_level == TrustLevel.levels[:newuser]
+  end
+
   def seen_before?
     last_seen_at.present?
   end
@@ -246,7 +263,7 @@ class User < ActiveRecord::Base
 
   def update_visit_record!(date)
     unless has_visit_record?(date)
-      update_column(:days_visited, days_visited + 1)
+      user_stat.update_column(:days_visited, user_stat.days_visited + 1)
       user_visits.create!(visited_at: date)
     end
   end
@@ -292,49 +309,17 @@ class User < ActiveRecord::Base
     template.gsub("{size}", "45")
   end
 
+  # the avatars might take a while to generate
+  # so return the url of the original image in the meantime
+  def uploaded_avatar_path
+    return unless SiteSetting.allow_uploaded_avatars? && use_uploaded_avatar
+    uploaded_avatar_template.present? ? uploaded_avatar_template : uploaded_avatar.try(:url)
+  end
+
   def avatar_template
-    if SiteSetting.allow_uploaded_avatars? && use_uploaded_avatar
-      # the avatars might take a while to generate
-      # so return the url of the original image in the meantime
-      uploaded_avatar_template.present? ? uploaded_avatar_template : uploaded_avatar.try(:url)
-    else
-      User.gravatar_template(email)
-    end
+    uploaded_avatar_path || User.gravatar_template(email)
   end
 
-  # Updates the denormalized view counts for all users
-  def self.update_view_counts
-
-    # NOTE: we only update the counts for users we have seen in the last hour
-    #  this avoids a very expensive query that may run on the entire user base
-    #  we also ensure we only touch the table if data changes
-
-    # Update denormalized topics_entered
-    exec_sql "UPDATE users SET topics_entered = X.c
-             FROM
-            (SELECT v.user_id,
-                    COUNT(DISTINCT parent_id) AS c
-             FROM views AS v
-             WHERE parent_type = 'Topic'
-             GROUP BY v.user_id) AS X
-            WHERE
-                    X.user_id = users.id AND
-                    X.c <> topics_entered AND
-                    users.last_seen_at > :seen_at
-    ", seen_at: 1.hour.ago
-
-    # Update denormalzied posts_read_count
-    exec_sql "UPDATE users SET posts_read_count = X.c
-              FROM
-              (SELECT pt.user_id,
-                      COUNT(*) AS c
-               FROM post_timings AS pt
-               GROUP BY pt.user_id) AS X
-               WHERE X.user_id = users.id AND
-                     X.c <> posts_read_count AND
-                     users.last_seen_at > :seen_at
-    ", seen_at: 1.hour.ago
-  end
 
   # The following count methods are somewhat slow - definitely don't use them in a loop.
   # They might need to be denormalized
@@ -441,20 +426,6 @@ class User < ActiveRecord::Base
     end
   end
 
-  MAX_TIME_READ_DIFF = 100
-  # attempt to add total read time to user based on previous time this was called
-  def update_time_read!
-    last_seen_key = "user-last-seen:#{id}"
-    last_seen = $redis.get(last_seen_key)
-    if last_seen.present?
-      diff = (Time.now.to_f - last_seen.to_f).round
-      if diff > 0 && diff < MAX_TIME_READ_DIFF
-        User.where(id: id, time_read: time_read).update_all ["time_read = time_read + ?", diff]
-      end
-    end
-    $redis.set(last_seen_key, Time.now.to_f)
-  end
-
   def readable_name
     return "#{name} (#{username})" if name.present? && name != username
     username
@@ -469,38 +440,23 @@ class User < ActiveRecord::Base
     where('created_at > ?', sinceDaysAgo.days.ago).group('date(created_at)').order('date(created_at)').count
   end
 
-  def self.counts_by_trust_level
-    group('trust_level').count
-  end
-
-  def update_topic_reply_count
-    self.topic_reply_count =
-        Topic
-        .where(['id in (
-              SELECT topic_id FROM posts p
-              JOIN topics t2 ON t2.id = p.topic_id
-              WHERE p.deleted_at IS NULL AND
-                t2.user_id <> p.user_id AND
-                p.user_id = ?
-              )', self.id])
-        .count
-  end
 
   def secure_category_ids
-    cats = self.staff? ? Category.select(:id).where(read_restricted: true) : secure_categories.select('categories.id').references(:categories)
-    cats.map { |c| c.id }.sort
+    cats = self.staff? ? Category.where(read_restricted: true) : secure_categories.references(:categories)
+    cats.pluck('categories.id').sort
   end
 
   def topic_create_allowed_category_ids
     Category.topic_create_allowed(self.id).select(:id)
   end
 
+
   # Flag all posts from a user as spam
   def flag_linked_posts_as_spam
     admin = Discourse.system_user
     topic_links.includes(:post).each do |tl|
       begin
-        PostAction.act(admin, tl.post, PostActionType.types[:spam])
+        PostAction.act(admin, tl.post, PostActionType.types[:spam], message: I18n.t('flag_reason.spam_hosts'))
       rescue PostAction::AlreadyActed
         # If the user has already acted, just ignore it
       end
@@ -509,6 +465,10 @@ class User < ActiveRecord::Base
 
   def has_uploaded_avatar
     uploaded_avatar.present?
+  end
+
+  def added_a_day_ago?
+    created_at > 1.day.ago
   end
 
   protected
@@ -531,6 +491,12 @@ class User < ActiveRecord::Base
       TopicUser.where(where_conditions).update_all(["notification_level = CASE WHEN total_msecs_viewed < ? THEN ? ELSE ? END",
                             auto_track_topics_after_msecs, TopicUser.notification_levels[:regular], TopicUser.notification_levels[:tracking]])
     end
+  end
+
+  def create_user_stat
+    stat = UserStat.new
+    stat.user_id = id
+    stat.save!
   end
 
   def create_email_token
@@ -627,8 +593,6 @@ end
 #  approved                      :boolean          default(FALSE), not null
 #  approved_by_id                :integer
 #  approved_at                   :datetime
-#  topics_entered                :integer          default(0), not null
-#  posts_read_count              :integer          default(0), not null
 #  digest_after_days             :integer
 #  previous_visit_at             :datetime
 #  banned_at                     :datetime
@@ -637,22 +601,18 @@ end
 #  auto_track_topics_after_msecs :integer
 #  views                         :integer          default(0), not null
 #  flag_level                    :integer          default(0), not null
-#  time_read                     :integer          default(0), not null
-#  days_visited                  :integer          default(0), not null
 #  ip_address                    :string
 #  new_topic_duration_minutes    :integer
 #  external_links_in_new_tab     :boolean          default(FALSE), not null
 #  enable_quoting                :boolean          default(TRUE), not null
 #  moderator                     :boolean          default(FALSE)
-#  likes_given                   :integer          default(0), not null
-#  likes_received                :integer          default(0), not null
-#  topic_reply_count             :integer          default(0), not null
 #  blocked                       :boolean          default(FALSE)
 #  dynamic_favicon               :boolean          default(FALSE), not null
 #  title                         :string(255)
 #  use_uploaded_avatar           :boolean          default(FALSE)
 #  uploaded_avatar_template      :string(255)
 #  uploaded_avatar_id            :integer
+#  email_always                  :boolean          default(FALSE), not null
 #
 # Indexes
 #

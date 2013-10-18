@@ -94,6 +94,8 @@ de:
     links: Links
     faq: "FAQ"
     privacy_policy: "Datenschutzrichtlinie"
+    mobile_view: "Mobilansicht"
+    desktop_view: "Desktopansicht"
     you: "Du"
     or: "oder"
     now: "gerade eben"
@@ -202,6 +204,12 @@ de:
       change: "ändern"
       moderator: "{{user}} ist Moderator"
       admin: "{{user}} ist Administrator"
+      deleted: "(gelöscht)"
+
+      messages:
+        all: "Alle"
+        mine: "Meine"
+        unread: "Ungelesen"
 
       change_password:
         success: "(Mail gesendet)"
@@ -365,6 +373,7 @@ de:
     private_message_info:
       title: "Privates Gespräch"
       invite: "Andere einladen..."
+      remove_allowed_user: "Willst du {{name}} wirklich aus diesem Gespräch entfernen?"
 
     email: 'Mail'
     username: 'Benutzername'
@@ -513,18 +522,10 @@ de:
       title_with_attachments: "Bild oder Datei hochladen"
       from_my_computer: "Von meinem Gerät"
       from_the_web: "Aus dem Web"
-      add_title: "Bild hinzufügen"
-      add_title_with_attachments: "Bild oder Datei hinzufügen"
-      remote_title: "Entferntes Bild"
-      remote_title_with_attachments: "Entferntes Bild oder Datei"
       remote_tip: "Gib die Adresse eines Bildes wie folgt ein: http://example.com/image.jpg"
       remote_tip_with_attachments: "Gib die Adresse eines Bildes oder Datei wie folgt ein http://example.com/file.ext (Erlaubte Dateiendungen: {{authorized_extensions}})."
-      local_title: "Lokales Bild"
-      local_title_with_attachments: "Lokales Bild oder Datei"
       local_tip: "Klicke hier, um ein Bild von deinem Gerät zu wählen."
       local_tip_with_attachments: "Klicke hier, um ein Bild oder eine Datei von deinem Gerät zu wählen (Erlaubte Dateiendungen: {{authorized_extensions}})"
-      upload_title: "Bild hochladen"
-      upload_title_with_attachments: "Bild oder Datei hochladen"
       uploading: "Hochgeladen..."
 
     search:
@@ -549,7 +550,7 @@ de:
 
     topics:
       none:
-        favorited: "Du hast noch keine Themen favorisierst. Um ein Thema zu favorisieren, klicke auf den Stern neben dem Titel."
+        favorited: "Du hast noch keine Themen favorisiert. Um ein Thema zu favorisieren, klicke auf den Stern neben dem Titel."
         unread: "Du hast alle Themen gelesen."
         new: "Es gibt für dich keine neuen Themen."
         read: "Du hast bislang keine Themen gelesen."
@@ -811,6 +812,12 @@ de:
         undelete: "Diesen Beitrag wiederherstellen"
         share: "Link zu diesem Beitrag teilen"
         more: "Mehr"
+        delete_replies:
+          confirm:
+            one: "Willst du diese Direktantwort löschen?"
+            other: "Willst du die {{count}} Direktantworten auch löschen?"
+          yes_value: "Ja, auch die Antworten löschen"
+          no_value: "Nein, nur diesen Beitrag löschen"
 
       actions:
         flag: 'Melden'

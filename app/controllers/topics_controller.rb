@@ -24,32 +24,37 @@ class TopicsController < ApplicationController
   skip_before_filter :check_xhr, only: [:show, :feed]
 
   def show
-
     # We'd like to migrate the wordpress feed to another url. This keeps up backwards compatibility with
     # existing installs.
     return wordpress if params[:best].present?
 
     opts = params.slice(:username_filters, :filter, :page, :post_number)
+
+    opts[:username_filters] = [opts[:username_filters]] if opts[:username_filters].is_a?(String)
+
     begin
       @topic_view = TopicView.new(params[:id] || params[:topic_id], current_user, opts)
     rescue Discourse::NotFound
-      Rails.logger.info ">>>> B"
       topic = Topic.where(slug: params[:id]).first if params[:id]
       raise Discourse::NotFound unless topic
       return redirect_to(topic.relative_url)
     end
 
-    anonymous_etag(@topic_view.topic) do
-      redirect_to_correct_topic && return if slugs_do_not_match
+    discourse_expires_in 1.minute
 
-      # render workaround pseudo-static HTML page for old crawlers which ignores <noscript>
-      # (see http://meta.discourse.org/t/noscript-tag-and-some-search-engines/8078)
-      return render 'topics/plain', layout: false if (SiteSetting.enable_escaped_fragments && params.has_key?('_escaped_fragment_'))
+    redirect_to_correct_topic && return if slugs_do_not_match
 
-      View.create_for(@topic_view.topic, request.remote_ip, current_user)
-      track_visit_to_topic
-      perform_show_response
+    # render workaround pseudo-static HTML page for old crawlers which ignores <noscript>
+    # (see http://meta.discourse.org/t/noscript-tag-and-some-search-engines/8078)
+    return render 'topics/plain', layout: false if (SiteSetting.enable_escaped_fragments && params.has_key?('_escaped_fragment_'))
+
+    track_visit_to_topic
+
+    if should_track_visit_to_topic?
+      @topic_view.draft = Draft.get(current_user, @topic_view.draft_key, @topic_view.draft_sequence)
     end
+
+    perform_show_response
 
     canonical_url @topic_view.canonical_path
   end
@@ -70,10 +75,10 @@ class TopicsController < ApplicationController
           only_moderator_liked: params[:only_moderator_liked].to_s == "true"
     )
 
-    anonymous_etag(@topic_view.topic) do
-      wordpress_serializer = TopicViewWordpressSerializer.new(@topic_view, scope: guardian, root: false)
-      render_json_dump(wordpress_serializer)
-    end
+    discourse_expires_in 1.minute
+
+    wordpress_serializer = TopicViewWordpressSerializer.new(@topic_view, scope: guardian, root: false)
+    render_json_dump(wordpress_serializer)
   end
 
 
@@ -103,7 +108,7 @@ class TopicsController < ApplicationController
     success = false
     Topic.transaction do
       success = topic.save
-      topic.change_category(params[:category]) if success
+      success = topic.change_category(params[:category]) if success
     end
 
     # this is used to return the title to the client as it may have been
@@ -244,7 +249,7 @@ class TopicsController < ApplicationController
     topic = Topic.where(id: params[:topic_id]).first
     guardian.ensure_can_move_posts!(topic)
 
-    dest_topic = move_post_to_destination(topic)
+    dest_topic = move_posts_to_destination(topic)
     render_topic_changes(dest_topic)
   end
 
@@ -267,9 +272,8 @@ class TopicsController < ApplicationController
 
   def feed
     @topic_view = TopicView.new(params[:topic_id])
-    anonymous_etag(@topic_view.topic) do
-      render 'topics/show', formats: [:rss]
-    end
+    discourse_expires_in 1.minute
+    render 'topics/show', formats: [:rss]
   end
 
   private
@@ -300,13 +304,17 @@ class TopicsController < ApplicationController
   end
 
   def track_visit_to_topic
-    return unless should_track_visit_to_topic?
-    TopicUser.track_visit! @topic_view.topic, current_user
-    @topic_view.draft = Draft.get(current_user, @topic_view.draft_key, @topic_view.draft_sequence)
+    Jobs.enqueue(:view_tracker,
+                    topic_id: @topic_view.topic.id,
+                    ip: request.remote_ip,
+                    user_id: (current_user.id if current_user),
+                    track_visit: should_track_visit_to_topic?
+                )
+
   end
 
   def should_track_visit_to_topic?
-    (!request.xhr? || params[:track_visit]) && current_user
+    !!((!request.xhr? || params[:track_visit]) && current_user)
   end
 
   def perform_show_response
@@ -331,14 +339,12 @@ class TopicsController < ApplicationController
     end
   end
 
-  private
-
-  def move_post_to_destination(topic)
+  def move_posts_to_destination(topic)
     args = {}
     args[:title] = params[:title] if params[:title].present?
     args[:destination_topic_id] = params[:destination_topic_id].to_i if params[:destination_topic_id].present?
 
-    topic.move_posts(current_user, params[:post_ids].map {|p| p.to_i}, args)
+    topic.move_posts(current_user, post_ids_including_replies, args)
   end
 
 end

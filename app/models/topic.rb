@@ -56,6 +56,12 @@ class Topic < ActiveRecord::Base
                                         :case_sensitive => false,
                                         :collection => Proc.new{ Topic.listable_topics } }
 
+  # The allow_uncategorized_topics site setting can be changed at any time, so there may be
+  # existing topics with nil category. We'll allow that, but when someone tries to make a new
+  # topic or change a topic's category, perform validation.
+  attr_accessor :do_category_validation
+  validates :category_id, :presence => { :if => Proc.new { @do_category_validation && !SiteSetting.allow_uncategorized_topics } }
+
   before_validation do
     self.sanitize_title
     self.title = TextCleaner.clean_title(TextSentinel.title_sentinel(title).text) if errors[:title].empty?
@@ -135,6 +141,7 @@ class Topic < ActiveRecord::Base
   before_create do
     self.bumped_at ||= Time.now
     self.last_post_user_id ||= user_id
+    self.do_category_validation = true
     if !@ignore_category_auto_close and self.category and self.category.auto_close_days and self.auto_close_at.nil?
       set_auto_close(self.category.auto_close_days)
     end
@@ -175,12 +182,13 @@ class Topic < ActiveRecord::Base
 
   # Additional rate limits on topics: per day and private messages per day
   def limit_topics_per_day
-    RateLimiter.new(user, "topics-per-day:#{Date.today.to_s}", SiteSetting.max_topics_per_day, 1.day.to_i)
+    apply_per_day_rate_limit_for("topics", :max_topics_per_day)
+    limit_first_day_topics_per_day if user.added_a_day_ago?
   end
 
   def limit_private_messages_per_day
     return unless private_message?
-    RateLimiter.new(user, "pms-per-day:#{Date.today.to_s}", SiteSetting.max_private_messages_per_day, 1.day.to_i)
+    apply_per_day_rate_limit_for("pms", :max_private_messages_per_day)
   end
 
   def fancy_title
@@ -311,13 +319,11 @@ class Topic < ActiveRecord::Base
                     FROM posts
                     WHERE avg_time > 0 AND avg_time IS NOT NULL
                     GROUP BY topic_id) AS x
-              WHERE x.topic_id = topics.id")
+              WHERE x.topic_id = topics.id AND (topics.avg_time <> x.gmean OR topics.avg_time IS NULL)")
   end
 
   def changed_to_category(cat)
-
-    return if cat.blank?
-    return if Category.where(topic_id: id).first.present?
+    return true if cat.blank? || Category.where(topic_id: id).first.present?
 
     Topic.transaction do
       old_category = category
@@ -327,12 +333,15 @@ class Topic < ActiveRecord::Base
       end
 
       self.category_id = cat.id
-      save
-
-      CategoryFeaturedTopic.feature_topics_for(old_category)
-      Category.where(id: cat.id).update_all 'topic_count = topic_count + 1'
-      CategoryFeaturedTopic.feature_topics_for(cat) unless old_category.try(:id) == cat.try(:id)
+      if save
+        CategoryFeaturedTopic.feature_topics_for(old_category)
+        Category.where(id: cat.id).update_all 'topic_count = topic_count + 1'
+        CategoryFeaturedTopic.feature_topics_for(cat) unless old_category.try(:id) == cat.try(:id)
+      else
+        return false
+      end
     end
+    true
   end
 
   def add_moderator_post(user, text, opts={})
@@ -362,6 +371,8 @@ class Topic < ActiveRecord::Base
 
   # Changes the category to a new name
   def change_category(name)
+    self.do_category_validation = true
+
     # If the category name is blank, reset the attribute
     if name.blank?
       if category_id.present?
@@ -369,12 +380,11 @@ class Topic < ActiveRecord::Base
         Category.where(id: category_id).update_all 'topic_count = topic_count - 1'
       end
       self.category_id = nil
-      save
-      return
+      return save
     end
 
     cat = Category.where(name: name).first
-    return if cat == category
+    return true if cat == category
     changed_to_category(cat)
   end
 
@@ -382,7 +392,12 @@ class Topic < ActiveRecord::Base
   def remove_allowed_user(username)
     user = User.where(username: username).first
     if user
-      topic_allowed_users.where(user_id: user.id).first.destroy
+      topic_user = topic_allowed_users.where(user_id: user.id).first
+      if topic_user
+        topic_user.destroy
+      else
+        false
+      end
     end
   end
 
@@ -421,11 +436,7 @@ class Topic < ActiveRecord::Base
       invite = Invite.create(invited_by: invited_by, email: lower_email)
       unless invite.valid?
 
-        # If the email already exists, grant permission to that user
-        if invite.email_already_exists and private_message?
-          user = User.where(email: lower_email).first
-          topic_allowed_users.create!(user_id: user.id)
-        end
+        grant_permission_to_user(lower_email) if email_already_exists_for?(invite)
 
         return
       end
@@ -437,6 +448,15 @@ class Topic < ActiveRecord::Base
     topic_invites.create(invite_id: invite.id)
     Jobs.enqueue(:invite_email, invite_id: invite.id)
     invite
+  end
+
+  def email_already_exists_for?(invite)
+    invite.email_already_exists and private_message?
+  end
+
+  def grant_permission_to_user(lower_email)
+    user = User.where(email: lower_email).first
+    topic_allowed_users.create!(user_id: user.id)
   end
 
   def max_post_number
@@ -596,11 +616,19 @@ class Topic < ActiveRecord::Base
 
   private
 
-    def update_category_topic_count_by(num)
-      if category_id.present?
-        Category.where(['id = ?', category_id]).update_all("topic_count = topic_count " + (num > 0 ? '+' : '') + "#{num}")
-      end
+  def update_category_topic_count_by(num)
+    if category_id.present?
+      Category.where(['id = ?', category_id]).update_all("topic_count = topic_count " + (num > 0 ? '+' : '') + "#{num}")
     end
+  end
+
+  def limit_first_day_topics_per_day
+    apply_per_day_rate_limit_for("first-day-topics", :max_topics_in_first_day)
+  end
+
+  def apply_per_day_rate_limit_for(key, method_name)
+    RateLimiter.new(user, "#{key}-per-day:#{Date.today.to_s}", SiteSetting.send(method_name), 1.day.to_i)
+  end
 
 end
 
@@ -615,7 +643,7 @@ end
 #  updated_at              :datetime         not null
 #  views                   :integer          default(0), not null
 #  posts_count             :integer          default(0), not null
-#  user_id                 :integer          not null
+#  user_id                 :integer
 #  last_post_user_id       :integer          not null
 #  reply_count             :integer          default(0), not null
 #  featured_user1_id       :integer
@@ -658,7 +686,9 @@ end
 #
 # Indexes
 #
-#  idx_topics_user_id_deleted_at     (user_id)
-#  index_forum_threads_on_bumped_at  (bumped_at)
+#  idx_topics_user_id_deleted_at                                (user_id)
+#  index_forum_threads_on_bumped_at                             (bumped_at)
+#  index_topics_on_deleted_at_and_visible_and_archetype_and_id  (deleted_at,visible,archetype,id)
+#  index_topics_on_id_and_deleted_at                            (id,deleted_at)
 #
 

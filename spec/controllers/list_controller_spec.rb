@@ -36,6 +36,20 @@ describe ListController do
 
   end
 
+  describe 'RSS feeds' do
+
+    [:latest, :hot].each do |filter|
+
+      it 'renders RSS' do
+        get "#{filter}_feed", format: :rss
+        response.should be_success
+        response.content_type.should == 'application/rss+xml'
+      end
+
+    end
+
+  end
+
   context 'category' do
 
     context 'in a category' do
@@ -117,6 +131,54 @@ describe ListController do
       end
     end
 
+  end
+
+  context "private_messages" do
+    let!(:user) { log_in }
+
+    it "raises an error when can_see_private_messages? is false " do
+      Guardian.any_instance.expects(:can_see_private_messages?).returns(false)
+      xhr :get, :private_messages, username: @user.username
+      response.should be_forbidden
+    end
+
+    it "succeeds when can_see_private_messages? is false " do
+      Guardian.any_instance.expects(:can_see_private_messages?).returns(true)
+      xhr :get, :private_messages, username: @user.username
+      response.should be_success
+    end
+  end
+
+  context "private_messages_sent" do
+    let!(:user) { log_in }
+
+    it "raises an error when can_see_private_messages? is false " do
+      Guardian.any_instance.expects(:can_see_private_messages?).returns(false)
+      xhr :get, :private_messages_sent, username: @user.username
+      response.should be_forbidden
+    end
+
+    it "succeeds when can_see_private_messages? is false " do
+      Guardian.any_instance.expects(:can_see_private_messages?).returns(true)
+      xhr :get, :private_messages_sent, username: @user.username
+      response.should be_success
+    end
+  end
+
+  context "private_messages_unread" do
+    let!(:user) { log_in }
+
+    it "raises an error when can_see_private_messages? is false " do
+      Guardian.any_instance.expects(:can_see_private_messages?).returns(false)
+      xhr :get, :private_messages_unread, username: @user.username
+      response.should be_forbidden
+    end
+
+    it "succeeds when can_see_private_messages? is false " do
+      Guardian.any_instance.expects(:can_see_private_messages?).returns(true)
+      xhr :get, :private_messages_unread, username: @user.username
+      response.should be_success
+    end
   end
 
   context 'hot' do

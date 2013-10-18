@@ -181,8 +181,8 @@ describe UsersController do
         lambda { xhr :put, :change_email, username: user.username }.should raise_error(ActionController::ParameterMissing)
       end
 
-      it "raises an error if you can't edit the user" do
-        Guardian.any_instance.expects(:can_edit?).with(user).returns(false)
+      it "raises an error if you can't edit the user's email" do
+        Guardian.any_instance.expects(:can_edit_email?).with(user).returns(false)
         xhr :put, :change_email, username: user.username, email: new_email
         response.should be_forbidden
       end
@@ -637,7 +637,7 @@ describe UsersController do
 
       context 'is too long' do
         before do
-          xhr :get, :check_username, username: 'abcdefghijklmnop'
+          xhr :get, :check_username, username: generate_username(User.username_length.last + 1)
         end
         include_examples 'checking an invalid username'
 
@@ -966,11 +966,17 @@ describe UsersController do
         response.status.should eq 413
       end
 
+      it 'rejects unauthorized images' do
+        SiteSetting.stubs(:authorized_image?).returns(false)
+        xhr :post, :upload_avatar, username: user.username, file: avatar
+        response.status.should eq 422
+      end
+
       it 'is successful' do
         upload = Fabricate(:upload)
         Upload.expects(:create_for).returns(upload)
         # enqueues the avatar generator job
-        Jobs.expects(:enqueue).with(:generate_avatars, { upload_id: upload.id })
+        Jobs.expects(:enqueue).with(:generate_avatars, { user_id: user.id, upload_id: upload.id })
         xhr :post, :upload_avatar, username: user.username, file: avatar
         user.reload
         # erase the previous template

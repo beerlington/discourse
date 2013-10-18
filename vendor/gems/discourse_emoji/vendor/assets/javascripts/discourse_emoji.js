@@ -12,16 +12,29 @@
   // Also support default emotions
   var translations = {
     ':)'   : 'smile',
+    ':-)'   : 'smile',
     ':('   : 'frowning',
+    ':-('   : 'frowning',
     ';)'   : 'wink',
+    ';-)'   : 'wink',
     ':\'(' : 'cry',
+    ':\'-(' : 'cry',
+    ':-\'(' : 'cry',
+    ':p'   : 'stuck_out_tongue',
     ':P'   : 'stuck_out_tongue',
+    ':-P'   : 'stuck_out_tongue',
     ':O'   : 'open_mouth',
+    ':-O'   : 'open_mouth',
     ':D'   : 'grin',
+    ':-D'   : 'grin',
     ':|'   : 'expressionless',
+    ':-|'   : 'expressionless',
     ";P"   : 'stuck_out_tongue_winking_eye',
+    ";-P"   : 'stuck_out_tongue_winking_eye',
     ';)'   : 'wink',
-    ":$"   : 'blush'
+    ';-)'   : 'wink',
+    ":$"   : 'blush',
+    ":-$"   : 'blush'
   };
 
   Object.keys(translations).forEach(function (code) {
@@ -95,4 +108,6 @@
       });
     });
   }
+
+  Discourse.Markdown.whiteListClass("emoji");
 }).call(this);

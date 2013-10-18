@@ -32,12 +32,13 @@ if rails4?
   end
 end
 
+gem 'seed-fu' , github: 'SamSaffron/seed-fu'
+
 if rails4?
   gem 'rails', :git => 'git://github.com/rails/rails.git', :branch => '4-0-stable'
   gem 'redis-rails', :git => 'git://github.com/SamSaffron/redis-store.git'
   gem 'rails-observers'
   gem 'actionpack-action_caching'
-  gem 'seed-fu' , github: 'mbleigh/seed-fu'
 else
   # we had pain with the 3.2.13 upgrade so monkey patch the security fix
   # next time around we hope to upgrade
@@ -47,7 +48,6 @@ else
   # REVIEW EVERY RELEASE
   gem 'sprockets', git: 'https://github.com/SamSaffron/sprockets.git', branch: 'rails-compat'
   gem 'redis-rails'
-  gem 'seed-fu'
   gem 'activerecord-postgres-hstore'
   gem 'active_attr'
 end
@@ -192,13 +192,10 @@ gem 'lru_redux'
 #  If you want to amend mini profiler to do the monkey patches in the railstie
 #  we are open to it. by deferring require to the initializer we can configure disourse installs without it
 
-gem 'rack-mini-profiler', '0.1.30', require: false
+gem 'flamegraph', git: 'https://github.com/SamSaffron/flamegraph.git', require: false
+gem 'rack-mini-profiler',  git: 'https://github.com/MiniProfiler/rack-mini-profiler.git', require: false
 
 # used for caching, optional
-# redis-rack-cache is missing a sane expiry policy, it hogs redis
-# https://github.com/jodosha/redis-store/pull/183
-gem 'redis-rack-cache', git: 'https://github.com/SamSaffron/redis-rack-cache.git', require: false
-gem 'rack-cache', require: false
 gem 'rack-cors', require: false
 gem 'unicorn', require: false
 gem 'puma', require: false
