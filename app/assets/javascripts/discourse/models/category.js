@@ -34,6 +34,7 @@ Discourse.Category = Discourse.Model.extend({
     return Discourse.getURL("/category/") + (this.get('slug'));
   }.property('name'),
 
+
   style: function() {
     return "background-color: #" + (this.get('category.color')) + "; color: #" + (this.get('category.text_color')) + ";";
   }.property('color', 'text_color'),
@@ -97,7 +98,19 @@ Discourse.Category = Discourse.Model.extend({
       {group_name: "admins", permission: Discourse.PermissionType.create({id: 2}) },
       {group_name: "crap", permission: Discourse.PermissionType.create({id: 3}) }
     ]);
-  }.property()
+  }.property(),
+
+  latestTopic: function(){
+    return this.get("topics")[0];
+  }.property("topics"),
+
+  unreadTopics: function(){
+    return Discourse.TopicTrackingState.current().countUnread(this.get('name'));
+  }.property('Discourse.TopicTrackingState.current.messageCount'),
+
+  newTopics: function(){
+    return Discourse.TopicTrackingState.current().countNew(this.get('name'));
+  }.property('Discourse.TopicTrackingState.current.messageCount')
 
 });
 
