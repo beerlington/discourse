@@ -22,7 +22,6 @@ describe Concern::Positionable do
       # import is making my life hard, we need to nuke this out of orbit
       des = ActiveSupport::DescendantsTracker.class_variable_get :@@direct_descendants
       des[ActiveRecord::Base].delete(TestItem)
-      Object.send(:remove_const, :TestItem)
     end
 
     it "can position stuff correctly" do
@@ -35,11 +34,13 @@ describe Concern::Positionable do
       positions.should == [3,0,1,2,4]
       TestItem.pluck(:position).sort.should == [0,1,2,3,4]
 
+      TestItem.find(3).move_to(1)
+      positions.should == [0,3,1,2,4]
 
       # this is somewhat odd, but when there is not positioning
       # not much we can do
       TestItem.find(1).move_to(5)
-      positions.should == [3,0,2,4,1]
+      positions.should == [0,3,2,4,1]
 
       TestItem.pluck(:position).sort.should == [0,1,2,3,4]
 
