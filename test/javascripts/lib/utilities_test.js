@@ -26,8 +26,8 @@ test("new user cannot upload images", function() {
   Discourse.SiteSettings.newuser_max_images = 0;
   this.stub(bootbox, "alert");
 
-  ok(!validUpload([{name: "image.png"}]));
-  ok(bootbox.alert.calledWith(I18n.t('post.errors.image_upload_not_allowed_for_new_user')));
+  ok(!validUpload([{name: "image.png"}]), 'the upload is not valid');
+  ok(bootbox.alert.calledWith(I18n.t('post.errors.image_upload_not_allowed_for_new_user')), 'the alert is called');
 });
 
 test("new user cannot upload attachments", function() {
@@ -95,7 +95,7 @@ var getUploadMarkdown = function(filename) {
 
 test("getUploadMarkdown", function() {
   ok(getUploadMarkdown("lolcat.gif") === '<img src="/uploads/123/abcdef.ext" width="100" height="200">');
-  ok(getUploadMarkdown("important.txt") === '<a class="attachment" href="/uploads/123/abcdef.ext">important.txt</a><span class="size">(42 Bytes)</span>');
+  ok(getUploadMarkdown("important.txt") === '<a class="attachment" href="/uploads/123/abcdef.ext">important.txt</a> (42 Bytes)');
 });
 
 test("isAnImage", function() {

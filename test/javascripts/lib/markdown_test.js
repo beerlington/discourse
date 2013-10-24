@@ -130,6 +130,9 @@ test("Links", function() {
          "<ul><li><a href=\"http://eviltrout.com\">Evil Trout</a></li></ul>",
          "allows markdown link references in a list");
 
+  cooked("User [MOD]: Hello!",
+         "<p>User [MOD]: Hello!</p>",
+         "It does not consider references that are obviously not URLs");
 });
 
 test("simple quotes", function() {
@@ -300,6 +303,9 @@ test("Code Blocks", function() {
          "<p><pre><code class=\"ruby\">hello &#x60;eviltrout&#x60;</code></pre></p>",
          "it allows code with backticks in it");
 
+  cooked("```eviltrout\nhello\n```",
+          "<p><pre><code class=\"lang-auto\">hello</code></pre></p>",
+          "it doesn't not whitelist all classes");
 
   cooked("```[quote=\"sam, post:1, topic:9441, full:true\"]This is `<not>` a bug.[/quote]```",
          "<p><pre><code class=\"lang-auto\">[quote=&quot;sam, post:1, topic:9441, full:true&quot;]This is &#x60;&lt;not&gt;&#x60; a bug.[/quote]</code></pre></p>",
@@ -319,6 +325,7 @@ test("sanitize", function() {
          "<p><a href=\"http://disneyland.disney.go.com/\">disney</a> <a href=\"http://reddit.com\">reddit</a></p>",
          "we can embed proper links");
 
+  cooked("<table><tr><td>hello</td></tr></table>\nafter", "<p>after</p>", "it does not allow tables");
   cooked("<blockquote>a\n</blockquote>\n", "<blockquote>a\n\n<br/>\n\n</blockquote>", "it does not double sanitize");
 });
 
