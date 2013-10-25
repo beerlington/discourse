@@ -18,7 +18,7 @@ default_run_options[:pty] = true
 set :user, 'deploy'
 set :use_sudo, false
 set :rails_env, :production
-set :rbenv_ruby_version, '2.0.0-p195'
+set :rbenv_ruby_version, '2.0.0-p247'
 
 role :app, 'vtonline.org', primary: true
 role :db,  'vtonline.org', primary: true

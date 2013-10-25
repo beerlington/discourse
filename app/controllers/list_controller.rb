@@ -28,7 +28,7 @@ class ListController < ApplicationController
       @link = "#{Discourse.base_url}/#{filter}"
       @description = I18n.t("rss_description.#{filter}")
       @atom_link = "#{Discourse.base_url}/#{filter}.rss"
-      @topic_list = TopicQuery.new(current_user).public_send("list_#{filter}")
+      @topic_list = TopicQuery.new.public_send("list_#{filter}")
       render 'list', formats: [:rss]
     end
   end
@@ -49,26 +49,24 @@ class ListController < ApplicationController
   def category
     query = TopicQuery.new(current_user, page: params[:page])
 
-    # If they choose uncategorized, return topics NOT in a category
-    if request_is_for_uncategorized?
-      list = query.list_uncategorized
+    if !@category
+      raise Discourse::NotFound
+      return
+    end
+    guardian.ensure_can_see!(@category)
+    list = query.list_category(@category)
+    @description = @category.description
+
+    if params[:parent_category].present?
+      list.more_topics_url = url_for(category_list_parent_path(params[:parent_category], params[:category], page: next_page, format: "json"))
     else
-      if !@category
-        raise Discourse::NotFound
-        return
-      end
-      guardian.ensure_can_see!(@category)
-      list = query.list_category(@category)
-      @description = @category.description
+      list.more_topics_url = url_for(category_list_path(params[:category], page: next_page, format: "json"))
     end
 
-    list.more_topics_url = url_for(category_list_path(params[:category], page: next_page, format: "json"))
     respond(list)
   end
 
   def category_feed
-    raise Discourse::InvalidParameters.new('Category RSS of "uncategorized"') if request_is_for_uncategorized?
-
     guardian.ensure_can_see!(@category)
     discourse_expires_in 1.minute
 
@@ -118,13 +116,18 @@ class ListController < ApplicationController
 
   def set_category
     slug = params.fetch(:category)
-    @category = Category.where("slug = ?", slug).includes(:featured_users).first || Category.where("id = ?", slug.to_i).includes(:featured_users).first
-  end
+    parent_slug = params[:parent_category]
 
-  def request_is_for_uncategorized?
-    params[:category] == Slug.for(SiteSetting.uncategorized_name) ||
-      params[:category] == SiteSetting.uncategorized_name ||
-      params[:category] == 'uncategorized'
+    parent_category_id = nil
+    if parent_slug.present?
+      parent_category_id = Category.where(slug: parent_slug).pluck(:id).first ||
+                           Category.where(id: parent_slug.to_i).pluck(:id).first
+
+      raise Discourse::NotFound.new if parent_category_id.blank?
+    end
+
+    @category = Category.where(slug: slug, parent_category_id: parent_category_id).includes(:featured_users).first ||
+                Category.where(id: slug.to_i, parent_category_id: parent_category_id).includes(:featured_users).first
   end
 
   def build_topic_list_options
@@ -136,7 +139,8 @@ class ListController < ApplicationController
     return {
       page: params[:page],
       topic_ids: param_to_integer_list(:topic_ids),
-      exclude_category: (params[:exclude_category] || menu_item.try(:filter))
+      exclude_category: (params[:exclude_category] || menu_item.try(:filter)),
+      category: params[:category]
     }
   end
 

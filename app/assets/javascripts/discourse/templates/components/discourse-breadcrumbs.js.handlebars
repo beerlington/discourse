@@ -1,0 +1,9 @@
+{{discourse-categorydrop title=title categories=parentCategories}}
+
+{{discourse-categorydrop category=targetCategory categories=childCategories}}
+
+{{#if parentCategory}}
+  {{discourse-categorydrop category=category}}
+{{/if}}
+
+<div class='clear'></div>

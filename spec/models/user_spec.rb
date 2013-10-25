@@ -226,7 +226,6 @@ describe User do
       end
     end
 
-
     context 'after_save' do
       before do
         subject.save
@@ -235,6 +234,21 @@ describe User do
       its(:email_tokens) { should be_present }
       its(:bio_cooked) { should be_present }
       its(:bio_summary) { should be_present }
+    end
+  end
+
+  describe 'ip address validation' do
+    it 'validates ip_address for new users' do
+      u = Fabricate.build(:user)
+      AllowedIpAddressValidator.any_instance.expects(:validate_each).with(u, :ip_address, u.ip_address)
+      u.valid?
+    end
+
+    it 'does not validate ip_address when updating an existing user' do
+      u = Fabricate(:user)
+      u.ip_address = '87.123.23.11'
+      AllowedIpAddressValidator.any_instance.expects(:validate_each).never
+      u.valid?
     end
   end
 
@@ -839,6 +853,65 @@ describe User do
         expect(user).to be_added_a_day_ago
       end
     end
+  end
+
+  describe "#update_avatar" do
+    let(:upload) { Fabricate(:upload) }
+    let(:user)   { Fabricate(:user) }
+
+    it "should update use's avatar" do
+      expect(user.update_avatar(upload)).to be_true
+    end
+  end
+
+  describe 'api keys' do
+    let(:admin) { Fabricate(:admin) }
+    let(:other_admin) { Fabricate(:admin) }
+    let(:user) { Fabricate(:user) }
+
+    describe '.generate_api_key' do
+
+      it "generates an api key when none exists, and regenerates when it does" do
+        expect(user.api_key).to be_blank
+
+        # Generate a key
+        api_key = user.generate_api_key(admin)
+        expect(api_key.user).to eq(user)
+        expect(api_key.key).to be_present
+        expect(api_key.created_by).to eq(admin)
+
+        user.reload
+        expect(user.api_key).to eq(api_key)
+
+        # Regenerate a key. Keeps the same record, updates the key
+        new_key = user.generate_api_key(other_admin)
+        expect(new_key.id).to eq(api_key.id)
+        expect(new_key.key).to_not eq(api_key.key)
+        expect(new_key.created_by).to eq(other_admin)
+      end
+
+    end
+
+    describe '.revoke_api_key' do
+
+      it "revokes an api key when exists" do
+        expect(user.api_key).to be_blank
+
+        # Revoke nothing does nothing
+        user.revoke_api_key
+        user.reload
+        expect(user.api_key).to be_blank
+
+        # When a key is present it is removed
+        user.generate_api_key(admin)
+        user.reload
+        user.revoke_api_key
+        user.reload
+        expect(user.api_key).to be_blank
+      end
+
+    end
 
   end
+
 end
