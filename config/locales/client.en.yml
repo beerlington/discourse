@@ -184,6 +184,8 @@ en:
       "13": "Inbox"
 
     categories:
+      all: "all categories"
+      all_subcategories: "all subcategories"
       category: "Category"
       posts: "Posts"
       topics: "Topics"
@@ -761,7 +763,7 @@ en:
       split_topic:
         title: "Move to New Topic"
         action: "move to new topic"
-        topic_name: "New Topic Name:"
+        topic_name: "New Topic Name"
         error: "There was an error moving posts to the new topic."
         instructions:
           one: "You are about to create a new topic and populate it with the post you've selected."
@@ -1073,7 +1075,7 @@ en:
 
   # This section is exported to the javascript for i18n in the admin section
   admin_js:
-    type_to_filter: "type to filter..."
+    filter: "filter"
 
     admin:
       title: 'Discourse Admin'
