@@ -592,7 +592,6 @@ fr:
 
     topic:
       filter_to: "Afficher uniquement les {{post_count}} messages de {{username}} dans cette discussion"
-      create_in: 'Créer une discussion dans la catégorie {{categoryName}}'
       create: 'Créer une discussion'
       create_long: 'Créer une nouvelle discussion'
       private_message: 'Commencer une discussion privée'
@@ -1033,6 +1032,7 @@ fr:
       create_post: "Répondre / Voir"
       readonly: "Voir"
   admin_js:
+    type_to_filter: "Commencez à taper pour filtrer..."
     admin:
       title: 'Administation Discourse'
       moderator: 'Modérateur'

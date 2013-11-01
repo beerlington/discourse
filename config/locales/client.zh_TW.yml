@@ -527,7 +527,6 @@ zh_TW:
       title: 主題排名詳細
 
     topic:
-      create_in: '創建一個 {{categoryName}} 分類的主題'
       create: '創建主題'
       create_long: '創建一個新主題'
       private_message: '開啓一段私下交流'
@@ -969,6 +968,7 @@ zh_TW:
       readonly: "觀看"
   # This section is exported to the javascript for i18n in the admin section
   admin_js:
+    type_to_filter: "輸入過濾條件……"
 
     admin:
       title: '論道 管理'

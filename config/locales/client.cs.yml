@@ -564,7 +564,6 @@ cs:
       title: Detaily bodování tématu
 
     topic:
-      create_in: 'Nové téma v kategorii {{categoryName}}'
       create: 'Nové téma'
       create_long: 'Vytvořit nové téma'
       private_message: 'Vytvořit soukromou konverzaci'
@@ -1063,6 +1062,7 @@ cs:
 
   # This section is exported to the javascript for i18n in the admin section
   admin_js:
+    type_to_filter: "zadejte text pro filtrování..."
 
     admin:
       title: 'Discourse Administrace'
