@@ -397,7 +397,7 @@ en:
       xaxis: "Day"
       yaxis: "Number of private messages"
     notify_user_private_messages:
-      title: "Nofity User"
+      title: "Notify User"
       xaxis: "Day"
       yaxis: "Number of private messages"
     top_referrers:
@@ -723,6 +723,7 @@ en:
 
     enable_names: "Allow users to show their full names"
     display_name_on_posts: "Also show a user's full name on their posts"
+    invites_shown: "Maximum invites shown on a user page"
 
   notification_types:
     mentioned: "%{display_username} mentioned you in %{link}"
@@ -809,6 +810,19 @@ en:
       [Visit %{site_name}][1]
 
       You were invited by a trusted user, so you'll be able to post a reply immediately, without needing to log in.
+
+      [1]: %{invite_link}
+
+  invite_forum_mailer:
+    subject_template: "[%{site_name}] %{invitee_name} invited you to join %{site_name}"
+    text_body_template: |
+      %{invitee_name} invited you to %{site_name}.
+
+      If you're interested, click the link below to join:
+
+      [Visit %{site_name}][1]
+
+      You were invited by a trusted user, so you'll be able to join immediately, without needing to log in.
 
       [1]: %{invite_link}
 

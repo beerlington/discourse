@@ -134,7 +134,7 @@ class ApplicationController < ActionController::Base
   def serialize_data(obj, serializer, opts={})
     # If it's an array, apply the serializer as an each_serializer to the elements
     serializer_opts = {scope: guardian}.merge!(opts)
-    if obj.is_a?(Array)
+    if obj.is_a?(Array) or obj.is_a?(ActiveRecord::Associations::CollectionProxy)
       serializer_opts[:each_serializer] = serializer
       ActiveModel::ArraySerializer.new(obj, serializer_opts).as_json
     else
@@ -193,7 +193,7 @@ class ApplicationController < ActionController::Base
     end
 
     def preload_current_user_data
-      store_preloaded("currentUser", MultiJson.dump(CurrentUserSerializer.new(current_user, root: false)))
+      store_preloaded("currentUser", MultiJson.dump(CurrentUserSerializer.new(current_user, scope: guardian, root: false)))
       serializer = ActiveModel::ArraySerializer.new(TopicTrackingState.report([current_user.id]), each_serializer: TopicTrackingStateSerializer)
       store_preloaded("topicTrackingStates", MultiJson.dump(serializer))
     end
