@@ -9,6 +9,7 @@
 Discourse.HeaderController = Discourse.Controller.extend({
   topic: null,
   showExtraInfo: null,
+  notifications: null,
 
   categories: function() {
     return Discourse.Category.list();
@@ -17,10 +18,6 @@ Discourse.HeaderController = Discourse.Controller.extend({
   showFavoriteButton: function() {
     return Discourse.User.current() && !this.get('topic.isPrivateMessage');
   }.property('topic.isPrivateMessage'),
-
-  mobileDevice: function() {
-    return Discourse.Mobile.isMobileDevice;
-  }.property(),
 
   mobileView: function() {
     return Discourse.Mobile.mobileView;
@@ -39,6 +36,16 @@ Discourse.HeaderController = Discourse.Controller.extend({
 
     toggleMobileView: function() {
       Discourse.Mobile.toggleMobileView();
+    },
+
+    showNotifications: function(headerView) {
+      var self = this;
+
+      Discourse.ajax("/notifications").then(function(result) {
+        self.set("notifications", result);
+        self.set("currentUser.unread_notifications", 0);
+        headerView.showDropdownBySelector("#user-notifications");
+      });
     }
   }
 

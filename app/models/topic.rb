@@ -184,6 +184,14 @@ class Topic < ActiveRecord::Base
     end
   end
 
+  def self.top_viewed(max = 10)
+    Topic.listable_topics.visible.secured.order('views desc').limit(max)
+  end
+
+  def self.recent(max = 10)
+    Topic.listable_topics.visible.secured.order('created_at desc').limit(max)
+  end
+
   def self.count_exceeds_minimum?
     count > SiteSetting.minimum_topics_similar
   end
@@ -599,6 +607,21 @@ class Topic < ActiveRecord::Base
     set_auto_close(num_days)
   end
 
+  def self.auto_close
+    Topic.where("NOT closed AND auto_close_at < ? AND auto_close_user_id IS NOT NULL", 5.minutes.from_now).each do |t|
+      t.auto_close
+    end
+  end
+
+  def auto_close(closer = nil)
+    if auto_close_at && !closed? && !deleted_at && auto_close_at < 5.minutes.from_now
+      closer ||= auto_close_user
+      if Guardian.new(closer).can_moderate?(self)
+        update_status('autoclosed', true, closer)
+      end
+    end
+  end
+
   def set_auto_close(num_days, by_user=nil)
     num_days = num_days.to_i
     self.auto_close_at = (num_days > 0 ? num_days.days.from_now : nil)
@@ -669,7 +692,7 @@ end
 #  closed                  :boolean          default(FALSE), not null
 #  archived                :boolean          default(FALSE), not null
 #  bumped_at               :datetime         not null
-#  has_best_of             :boolean          default(FALSE), not null
+#  has_summary             :boolean          default(FALSE), not null
 #  meta_data               :hstore
 #  vote_count              :integer          default(0), not null
 #  archetype               :string(255)      default("regular"), not null
