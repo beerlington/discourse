@@ -59,11 +59,13 @@ gem 'redis', :require => ["redis", "redis/connection/hiredis"]
 
 gem 'active_model_serializers'
 
+gem 'html_truncator'
+
 # we had issues with latest, stick to the rev till we figure this out
 # PR that makes it all hang together welcome
 gem 'ember-rails'
-gem 'ember-source', '1.0.0.rc6.2'
-gem 'handlebars-source', '1.0.12'
+gem 'ember-source', '~> 1.2.0.1'
+gem 'handlebars-source', '~> 1.1.2'
 gem 'barber'
 
 gem 'vestal_versions', git: 'https://github.com/SamSaffron/vestal_versions'
@@ -130,8 +132,6 @@ gem 'rack-protection' # security
 # allow everywhere for now cause we are allowing asset debugging in prd
 group :assets do
   gem 'sass-rails'
-  # Sam: disabling for now, having issues with our jenkins build
-  # gem 'turbo-sprockets-rails3'
   gem 'uglifier'
 end
 
