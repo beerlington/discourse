@@ -219,6 +219,10 @@ Discourse.TopicController = Discourse.ObjectController.extend(Discourse.Selected
 
   },
 
+  slackRatio: function() {
+    return Discourse.Capabilities.currentProp('slackRatio');
+  }.property(),
+
   jumpTopDisabled: function() {
     return (this.get('progressPosition') <= 3);
   }.property('progressPosition'),
@@ -271,7 +275,8 @@ Discourse.TopicController = Discourse.ObjectController.extend(Discourse.Selected
   streamPercentage: function() {
     if (!this.get('postStream.loaded')) { return 0; }
     if (this.get('postStream.highest_post_number') === 0) { return 0; }
-    return this.get('progressPosition') / this.get('highest_post_number');
+    var perc = this.get('progressPosition') / this.get('highest_post_number');
+    return (perc > 1.0) ? 1.0 : perc;
   }.property('postStream.loaded', 'progressPosition', 'highest_post_number'),
 
   multiSelectChanged: function() {
