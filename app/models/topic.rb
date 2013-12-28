@@ -82,6 +82,7 @@ class Topic < ActiveRecord::Base
   has_many :allowed_users, through: :topic_allowed_users, source: :user
 
   has_one :hot_topic
+  has_one :top_topic
   belongs_to :user
   belongs_to :last_poster, class_name: 'User', foreign_key: :last_post_user_id
   belongs_to :featured_user1, class_name: 'User', foreign_key: :featured_user1_id
@@ -629,7 +630,7 @@ class Topic < ActiveRecord::Base
   end
 
   def self.auto_close
-    Topic.where("NOT closed AND auto_close_at < ? AND auto_close_user_id IS NOT NULL", 5.minutes.from_now).each do |t|
+    Topic.where("NOT closed AND auto_close_at < ? AND auto_close_user_id IS NOT NULL", 1.minute.ago).each do |t|
       t.auto_close
     end
   end

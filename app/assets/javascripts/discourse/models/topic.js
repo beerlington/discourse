@@ -146,6 +146,9 @@ Discourse.Topic = Discourse.Model.extend({
 
   toggleStatus: function(property) {
     this.toggleProperty(property);
+    if (property === 'closed' && this.get('closed')) {
+      this.set('details.auto_close_at', null);
+    }
     return Discourse.ajax(this.get('url') + "/status", {
       type: 'PUT',
       data: {status: property, enabled: this.get(property) ? 'true' : 'false' }
@@ -164,8 +167,8 @@ Discourse.Topic = Discourse.Model.extend({
     var wordCount = this.get('word_count');
     if (!wordCount) return;
 
-    // Avg for 250 words per minute.
-    var minutes = Math.floor(wordCount / 250.0);
+    // Avg for 500 words per minute when you account for skimming
+    var minutes = Math.floor(wordCount / 500.0);
     return minutes;
   }.property('word_count'),
 

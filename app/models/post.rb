@@ -47,6 +47,7 @@ class Post < ActiveRecord::Base
   scope :by_newest, -> { order('created_at desc, id desc') }
   scope :by_post_number, -> { order('post_number ASC') }
   scope :with_user, -> { includes(:user) }
+  scope :created_since, lambda { |time_ago| where('posts.created_at > ?', time_ago) }
   scope :public_posts, -> { joins(:topic).where('topics.archetype <> ?', Archetype.private_message) }
   scope :private_posts, -> { joins(:topic).where('topics.archetype = ?', Archetype.private_message) }
   scope :with_topic_subtype, ->(subtype) { joins(:topic).where('topics.subtype = ?', subtype) }
@@ -60,10 +61,7 @@ class Post < ActiveRecord::Base
   end
 
   def self.find_by_detail(key, value)
-    includes(:post_details).where( "post_details.key = ? AND " +
-                                   "post_details.value = ?",
-                                   key,
-                                   value ).first
+    includes(:post_details).where(post_details: { key: key, value: value }).first
   end
 
   def add_detail(key, value, extra = nil)
@@ -278,10 +276,6 @@ class Post < ActiveRecord::Base
     else
       {}
     end
-  end
-
-  def author_readable
-    user.readable_name
   end
 
   def revise(updated_by, new_raw, opts = {})

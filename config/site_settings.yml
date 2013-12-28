@@ -8,14 +8,14 @@ required:
   site_contact_username: ''
   logo_url:
     client: true
-    default: '/assets/d-logo-sketch.png'
+    default: '/images/d-logo-sketch.png'
   logo_small_url:
     client: true
-    default: '/assets/d-logo-sketch-small.png'
+    default: '/images/d-logo-sketch-small.png'
   favicon_url:
     client: true
-    default: '/assets/default-favicon.ico'
-  apple_touch_icon_url: /assets/default-apple-touch-icon.png'
+    default: '/images/default-favicon.ico'
+  apple_touch_icon_url: '/images/default-apple-touch-icon.png'
   company_full_name: 'My Unconfigured Forum Ltd.'
   company_short_name: 'Unconfigured Forum'
   company_domain: 'www.example.com'
@@ -59,6 +59,8 @@ basic:
   relative_date_duration:
     client: true
     default: 30
+  topics_per_period_in_summary:
+    default: 10
 
 users:
   enable_local_logins:
@@ -76,6 +78,10 @@ users:
   must_approve_users:
     client: true
     default: false
+  min_password_length:
+    client: true
+    default: 8
+  block_common_passwords: true
   enable_google_logins:
     client: true
     default: true
@@ -177,6 +183,7 @@ posting:
     default: true
   post_undo_action_window_mins: 10
   max_mentions_per_post: 10
+  newuser_max_replies_per_topic: 3
   newuser_max_mentions_per_post: 2
   onebox_max_chars: 5000
   title_min_entropy: 10
@@ -200,6 +207,9 @@ posting:
   short_progress_text_threshold:
     client: true
     default: 1000
+  default_code_lang:
+    client: true
+    default: "lang-auto"
 
 email:
   email_time_window_mins: 10

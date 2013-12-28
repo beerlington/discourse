@@ -5,8 +5,8 @@
     <tr>
       <th class='category'>{{i18n categories.category}}</th>
       <th class='latest'>{{i18n categories.latest}}</th>
-      <th class='num topics'>{{i18n categories.topics}}</th>
-      <th class='num posts'>{{i18n categories.posts}}
+      <th class='stats topics'>{{i18n categories.topics}}</th>
+      <th class='stats posts'>{{i18n categories.posts}}
         {{#if canEdit}}
           <button title='{{i18n categories.toggle_ordering}}' class='btn toggle-admin no-text' {{action toggleOrdering}}><i class='fa fa-wrench'></i></button>
         {{/if}}
@@ -30,7 +30,7 @@
                 <a href={{unbound newUrl}} class='badge new-posts badge-notification' title='{{i18n topic.new_topics count="newTopics"}}'>{{unbound newTopics}} <i class='fa fa-asterisk'></i></a>
               {{/if}}
             </div>
-            <div class='featured-users pull-right'>
+            <div class='featured-users'>
               {{#each featured_users}}
                 <a href="/users/{{unbound username_lower}}">{{avatar this imageSize="small"}}</a>
               {{/each}}
@@ -79,8 +79,26 @@
             </div>
           {{/each}}
         </td>
-        <td class='num'>{{number topic_count}}</td>
-        <td class='num'>{{number post_count}}</td>
+        <td class='stats' {{bindAttr title="topicStatsTitle"}}>
+          <table class="categoryStats">
+            {{#each topicCountStats}}
+              <tr>
+                <td class="value">{{value}}</td>
+                <td class="unit">{{unit}}</td>
+              </tr>
+            {{/each}}
+          </table>
+        </td>
+        <td class='stats' {{bindAttr title="postStatsTitle"}}>
+          <table class="categoryStats">
+            {{#each postCountStats}}
+              <tr>
+                <td class="value">{{value}}</td>
+                <td class="unit">{{unit}}</td>
+              </tr>
+            {{/each}}
+          </table>
+        </td>
       </tr>
       {{/each}}
     </tbody>

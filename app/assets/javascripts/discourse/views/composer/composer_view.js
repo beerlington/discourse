@@ -122,8 +122,8 @@ Discourse.ComposerView = Discourse.View.extend(Ember.Evented, {
 
   ensureMaximumDimensionForImagesInPreview: function() {
     $('<style>#wmd-preview img, .cooked img {' +
-      'max-width:' + Discourse.SiteSettings.max_image_width + 'px;' +
-      'max-height:' + Discourse.SiteSettings.max_image_height + 'px;' +
+      'max-width:' + Discourse.SiteSettings.max_image_width + 'px!important;' +
+      'max-height:' + Discourse.SiteSettings.max_image_height + 'px!important;' +
       '}</style>'
      ).appendTo('head');
   },
@@ -327,11 +327,12 @@ Discourse.ComposerView = Discourse.View.extend(Ember.Evented, {
   imageSizes: function() {
     var result = {};
     $('#wmd-preview img').each(function(i, e) {
-      var $img = $(e);
-      result[$img.prop('src')] = {
-        width: $img.width(),
-        height: $img.height()
-      };
+      var $img = $(e),
+          src = $img.prop('src');
+
+      if (src && src.length) {
+        result[src] = { width: $img.width(), height: $img.height() };
+      }
     });
     return result;
   },

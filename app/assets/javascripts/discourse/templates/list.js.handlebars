@@ -1,9 +1,9 @@
-{{view Discourse.HtmlView key="top"}}
+{{customHTML "top"}}
 
 <div class='list-controls'>
   <div class="container">
 
-    {{bread-crumbs category=category categories=categories}}
+    {{bread-crumbs category=category categories=categories noSubcategories=noSubcategories}}
 
     <ul class="nav nav-pills" id='category-filter'>
       {{each availableNavItems itemViewClass="Discourse.NavItemView"}}
@@ -35,4 +35,4 @@
   </div>
 </div>
 
-{{view Discourse.HtmlView key="bottom"}}
+{{customHTML "bottom"}}

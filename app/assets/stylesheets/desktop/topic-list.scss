@@ -65,7 +65,7 @@
   border-spacing: 0;
   a.title:visited:not(.badge-notification) {color: #888;}
 
-  tbody tr {
+  > tbody > tr {
     &:nth-child(even) {
       background-color: #f8f8f8;
     }
@@ -250,12 +250,34 @@
   th.num {
     width: 45px;
   }
+  th.stats {
+    width: 90px;
+  }
+  td.latest {
+    vertical-align: top;
+    padding: 8px;
+  }
+  td.category {
+    vertical-align: top;
+    padding-top: 15px;
+    padding-bottom: 15px;
+  }
+  td.stats {
+    .unit {
+      font-size: 11px;
+    }
+  }
+  table.categoryStats {
+    td {
+      padding: 2px;
+      vertical-align: bottom;
+      line-height: 17px;
+      &.value { text-align: right; }
+      &.unit  { text-align: left; }
+    }
+  }
   .last-user-info {
     font-size: 12px;
-  }
-
-  .has-description td.category {
-    padding-top: 15px;
   }
 
   .has-description {
@@ -266,7 +288,7 @@
 
   .category{
     position: relative;
-    width: 55%;
+    width: 45%;
 
     .subcategories {
       margin-top: 10px;
@@ -276,6 +298,7 @@
       }
     }
     .featured-users {
+      float: right;
       margin-right: 13px;
     }
     .category-description {
@@ -292,6 +315,11 @@
     a.last-posted-at, a.last-posted-at:visited {
       color: #888;
     }
+  }
+
+  .badge-category {
+    display: inline-block;
+    margin-top: 1px;
   }
 }
 
@@ -426,6 +454,9 @@
 #list-area {
   margin-bottom: 300px;
 
+  h2 {
+    margin: 20px 0 10px;
+  }
 
 .topic-statuses .topic-status i {font-size: 15px;}
 
