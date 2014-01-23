@@ -10,7 +10,7 @@ Discourse.UserTopicListRoute = Discourse.Route.extend({
   }
 });
 
-function createPMRoute(viewName, path, type) {
+function createPMRoute(viewName, path) {
   return Discourse.UserTopicListRoute.extend({
     userActionType: Discourse.UserAction.TYPES.messages_received,
 
@@ -18,7 +18,7 @@ function createPMRoute(viewName, path, type) {
       return Discourse.TopicList.find('topics/' + path + '/' + this.modelFor('user').get('username_lower'));
     },
 
-    setupController: function(controller, model) {
+    setupController: function() {
       this._super.apply(this, arguments);
       this.controllerFor('user').setProperties({
         pmView: viewName,
@@ -32,7 +32,6 @@ Discourse.UserPrivateMessagesIndexRoute = createPMRoute('index', 'private-messag
 Discourse.UserPrivateMessagesMineRoute = createPMRoute('mine', 'private-messages-sent');
 Discourse.UserPrivateMessagesUnreadRoute = createPMRoute('unread', 'private-messages-unread');
 
-
 Discourse.UserActivityTopicsRoute = Discourse.UserTopicListRoute.extend({
   userActionType: Discourse.UserAction.TYPES.topics,
 
@@ -41,10 +40,10 @@ Discourse.UserActivityTopicsRoute = Discourse.UserTopicListRoute.extend({
   }
 });
 
-Discourse.UserActivityFavoritesRoute = Discourse.UserTopicListRoute.extend({
-  userActionType: Discourse.UserAction.TYPES.favorites,
+Discourse.UserActivityStarredRoute = Discourse.UserTopicListRoute.extend({
+  userActionType: Discourse.UserAction.TYPES.starred,
 
   model: function() {
-    return Discourse.TopicList.find('favorited', {user_id: this.modelFor('user').get('id') });
+    return Discourse.TopicList.find('starred', { user_id: this.modelFor('user').get('id') });
   }
 });

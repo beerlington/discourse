@@ -22,16 +22,28 @@ class TopicCreator
     save_topic
 
     watch_topic
+    auto_mute_topic
 
     @topic
   end
 
   private
 
+  def auto_mute_topic
+    CategoryUser.auto_mute_new_topic(@topic)
+  end
+
   def watch_topic
     unless @opts[:auto_track] == false
       @topic.notifier.watch_topic!(@topic.user_id)
     end
+
+    @topic.topic_allowed_users.pluck(:user_id).reject{|id| id == @topic.user_id}.each do |id|
+      @topic.notifier.watch_topic!(id, nil)
+    end
+
+    TopicUser.auto_watch_new_topic(@topic.id)
+    CategoryUser.auto_watch_new_topic(@topic)
   end
 
   def setup
