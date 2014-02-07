@@ -92,11 +92,11 @@ Discourse.Formatter = (function(){
   breakUp = cappedMemoize(breakUp, 100);
 
   shortDate = function(date){
-    return moment(date).shortDate();
+    return moment(date).format(I18n.t("dates.medium.date_year"));
   };
 
   shortDateNoYear = function(date) {
-    return moment(date).shortDateNoYear();
+    return moment(date).format(I18n.t("dates.tiny.date_month"));
   };
 
   tinyDateYear = function(date) {
@@ -261,7 +261,7 @@ Discourse.Formatter = (function(){
       if ((new Date()).getFullYear() !== date.getFullYear()) {
         displayDate = shortDate(date);
       } else {
-        displayDate = moment(date).shortDateNoYear();
+        displayDate = shortDateNoYear(date);
       }
     } else {
       displayDate = relativeAgeMediumSpan(distance, leaveAgo);

@@ -49,6 +49,8 @@ da:
         almost_x_years:
           one:   "1å"
           other: "%{count}å"
+        date_month: "MMM D"
+        date_year: "MMM 'YY"
       medium:
         x_minutes:
           one: "1 min"
@@ -227,7 +229,6 @@ da:
       deleted: "(slettet)"
       suspended_notice: "Denne bruger er suspenderet indtil {{date}}."
       suspended_reason: "Begrundelse: "
-      watch_new_topics: "Overvåg automatisk alle nye emner i forummet"
       watched_categories: "Overvåget"
       watched_categories_instructions: "Du overvåger automatisk alle emner i disse kategorier"
       tracked_categories: "Fulgt"

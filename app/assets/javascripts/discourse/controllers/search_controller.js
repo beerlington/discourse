@@ -11,13 +11,14 @@ Discourse.SearchController = Em.ArrayController.extend(Discourse.Presence, {
   // If we need to perform another search
   newSearchNeeded: function() {
     this.set('noResults', false);
-    var term = this.get('term');
-    if (term && term.length >= Discourse.SiteSettings.min_search_term_length) {
+    var term = (this.get('term') || '').trim();
+    if (term.length >= Discourse.SiteSettings.min_search_term_length) {
       this.set('loading', true);
       this.searchTerm(term, this.get('typeFilter'));
     } else {
       this.set('content', Em.A());
       this.set('resultCount', 0);
+      this.set('urls', []);
     }
     this.set('selectedIndex', 0);
   }.observes('term', 'typeFilter'),
@@ -25,6 +26,7 @@ Discourse.SearchController = Em.ArrayController.extend(Discourse.Presence, {
   searchTerm: Discourse.debouncePromise(function(term, typeFilter) {
     var self = this;
     self.set('resultCount', 0);
+    self.set('urls', []);
 
     var searcher = Discourse.Search.forTerm(term, {
       typeFilter: typeFilter,
@@ -32,7 +34,7 @@ Discourse.SearchController = Em.ArrayController.extend(Discourse.Presence, {
     });
 
     return searcher.then(function(results) {
-      self.set('results', results);
+      var urls = [];
       if (results) {
         self.set('noResults', results.length === 0);
 
@@ -45,14 +47,18 @@ Discourse.SearchController = Em.ArrayController.extend(Discourse.Presence, {
             .each(function(list){
               _.each(list.results, function(item){
                 item.index = index++;
+                urls.pushObject(item.url);
               });
             })
             .value();
 
         self.set('resultCount', index);
         self.set('content', results);
+        self.set('urls', urls);
       }
 
+      self.set('loading', false);
+    }).catch(function() {
       self.set('loading', false);
     });
   }, 300),
@@ -92,10 +98,9 @@ Discourse.SearchController = Em.ArrayController.extend(Discourse.Presence, {
 
   select: function() {
     if (this.get('loading')) return;
-    var href = $('#search-dropdown li.selected a').prop('href');
+    var href = this.get('urls')[this.get("selectedIndex")];
     if (href) {
       Discourse.URL.routeTo(href);
     }
   }
-
 });

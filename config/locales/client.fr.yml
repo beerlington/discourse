@@ -53,7 +53,8 @@ fr:
         almost_x_years:
           one: "1y"
           other: "%{count}a"
-        date_year: "D MMM 'YY"
+        date_month: "MMM D"
+        date_year: "MMM 'YY"
       medium:
         x_minutes:
           one: "1 min"
@@ -228,7 +229,6 @@ fr:
       deleted: "(supprimé)"
       suspended_notice: "L'utilisateur est suspendu jusqu'au {{date}}."
       suspended_reason: "Raison :"
-      watch_new_topics: "Surveiller automatiquement toutes les nouvelles discussions postées sur le forum"
       watched_categories: "Surveillées"
       watched_categories_instructions: "Vous allez surveiller automatiquement toutes les discussions de ces catégories"
       tracked_categories: "Suivies"
