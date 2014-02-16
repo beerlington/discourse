@@ -11,6 +11,9 @@ function buildTopicRoute(filter) {
     },
 
     model: function() {
+      // attempt to stop early cause we need this to be called before .sync
+      Discourse.ScreenTrack.current().stop();
+
       return Discourse.TopicList.list(filter).then(function(list) {
         var tracking = Discourse.TopicTrackingState.current();
         if (tracking) {
@@ -25,7 +28,11 @@ function buildTopicRoute(filter) {
       var period = filter.indexOf('/') > 0 ? filter.split('/')[1] : '',
           filterText = I18n.t('filters.' + filter.replace('/', '.') + '.title', {count: 0});
 
-      Discourse.set('title', I18n.t('filters.with_topics', {filter: filterText}));
+      if (filter === Discourse.Utilities.defaultHomepage()) {
+        Discourse.set('title', '');
+      } else {
+        Discourse.set('title', I18n.t('filters.with_topics', {filter: filterText}));
+      }
 
       this.controllerFor('discoveryTopics').setProperties({ model: model, category: null, period: period });
 

@@ -1,10 +1,28 @@
+require "sidekiq/pausable"
+
 sidekiq_redis = { url: $redis.url, namespace: 'sidekiq' }
 
-Sidekiq.configure_server do |config|
+Sidekiq.configure_client do |config|
   config.redis = sidekiq_redis
 end
 
+Sidekiq.configure_server do |config|
+  config.redis = sidekiq_redis
+  # add our pausable middleware
+  config.server_middleware do |chain|
+    chain.add Sidekiq::Pausable
+  end
+end
+
 if Sidekiq.server?
+
+  # warm up AR
+  RailsMultisite::ConnectionManagement.each_connection do
+    (ActiveRecord::Base.connection.tables - %w[schema_migrations]).each do |table|
+      table.classify.constantize.first rescue nil
+    end
+  end
+
   require 'scheduler/scheduler'
 
   manager = Scheduler::Manager.new
@@ -24,6 +42,4 @@ if Sidekiq.server?
   end
 end
 
-Sidekiq.configure_client { |config| config.redis = sidekiq_redis }
 Sidekiq.logger.level = Logger::WARN
-
