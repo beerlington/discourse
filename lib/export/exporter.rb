@@ -152,26 +152,22 @@ module Export
     end
 
     def build_pg_dump_command
-      db_conf = Rails.configuration.database_configuration[Rails.env]
-      host = db_conf["host"]
-      password = db_conf["password"]
-      username = db_conf["username"] || "postgres"
-      database = db_conf["database"]
+      db_conf = BackupRestore.database_configuration
 
-      password_argument = "PGPASSWORD=#{password}" if password.present?
-      host_argument     = "--host=#{host}"         if host.present?
+      password_argument = "PGPASSWORD=#{db_conf.password}" if db_conf.password.present?
+      host_argument     = "--host=#{db_conf.host}"         if db_conf.host.present?
+      username_argument = "--username=#{db_conf.username}" if db_conf.username.present?
 
-      [ password_argument,                  # pass the password to pg_dump
-        "pg_dump",                          # the pg_dump command
-        "--exclude-schema=backup",          # exclude backup schema
-        "--exclude-schema=restore",         # exclude restore schema
-        "--file='#{@dump_filename}'",       # output to the dump.sql file
-        "--no-owner",                       # do not output commands to set ownership of objects
-        "--no-privileges",                  # prevent dumping of access privileges
-        "--verbose",                        # specifies verbose mode
-        host_argument,                      # the hostname to connect to
-        "--username=#{username}",           # the username to connect as
-        database                            # the name of the database to dump
+      [ password_argument,            # pass the password to pg_dump (if any)
+        "pg_dump",                    # the pg_dump command
+        "--schema=public",            # only public schema
+        "--file='#{@dump_filename}'", # output to the dump.sql file
+        "--no-owner",                 # do not output commands to set ownership of objects
+        "--no-privileges",            # prevent dumping of access privileges
+        "--verbose",                  # specifies verbose mode
+        host_argument,                # the hostname to connect to (if any)
+        username_argument,            # the username to connect as (if any)
+        db_conf.database              # the name of the database to dump
       ].join(" ")
     end
 
@@ -226,23 +222,19 @@ module Export
 
       log "Archiving metadata..."
       FileUtils.cd(File.dirname(@meta_filename)) do
-        `tar --append --file #{tar_filename} #{File.basename(@meta_filename)}`
+        `tar --append --dereference --file #{tar_filename} #{File.basename(@meta_filename)}`
       end
 
       log "Archiving data dump..."
       FileUtils.cd(File.dirname(@dump_filename)) do
-        `tar --append --file #{tar_filename} #{File.basename(@dump_filename)}`
+        `tar --append --dereference --file #{tar_filename} #{File.basename(@dump_filename)}`
       end
 
       upload_directory = "uploads/" + @current_db
 
-      if Dir[upload_directory].present?
-
-        log "Archiving uploads..."
-        FileUtils.cd(File.join(Rails.root, "public")) do
-          `tar --append --file #{tar_filename} #{upload_directory}`
-        end
-
+      log "Archiving uploads..."
+      FileUtils.cd(File.join(Rails.root, "public")) do
+        `tar --append --dereference --file #{tar_filename} #{upload_directory}`
       end
 
       log "Gzipping archive..."

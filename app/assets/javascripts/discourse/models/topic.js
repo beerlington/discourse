@@ -68,7 +68,7 @@ Discourse.Topic = Discourse.Model.extend({
   // Helper to build a Url with a post number
   urlForPostNumber: function(postNumber) {
     var url = this.get('url');
-    if (postNumber && (postNumber > 1)) {
+    if (postNumber && (postNumber > 0)) {
       if (postNumber >= this.get('highest_post_number')) {
         url += "/last";
       } else {
@@ -90,6 +90,10 @@ Discourse.Topic = Discourse.Model.extend({
   lastPostUrl: function() {
     return this.urlForPostNumber(this.get('highest_post_number'));
   }.property('url', 'highest_post_number'),
+
+  firstPostUrl: function () {
+    return this.urlForPostNumber(1);
+  }.property('url'),
 
   lastPosterUrl: function() {
     return Discourse.getURL("/users/") + this.get("last_poster.username");
@@ -144,6 +148,7 @@ Discourse.Topic = Discourse.Model.extend({
   archetypeObject: function() {
     return Discourse.Site.currentProp('archetypes').findProperty('id', this.get('archetype'));
   }.property('archetype'),
+
   isPrivateMessage: Em.computed.equal('archetype', 'private_message'),
 
   toggleStatus: function(property) {
@@ -313,7 +318,7 @@ Discourse.Topic.reopenClass({
     WATCHING: 3,
     TRACKING: 2,
     REGULAR: 1,
-    MUTE: 0
+    MUTED: 0
   },
 
   createActionSummary: function(result) {
@@ -420,7 +425,19 @@ Discourse.Topic.reopenClass({
         operation: operation
       }
     });
+  },
+
+  bulkOperationByFilter: function(filter, operation) {
+    return Discourse.ajax("/topics/bulk", {
+      type: 'PUT',
+      data: { filter: filter, operation: operation }
+    });
+  },
+
+  resetNew: function() {
+    return Discourse.ajax("/topics/reset-new", {type: 'PUT'});
   }
+
 
 });
 

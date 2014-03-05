@@ -60,7 +60,20 @@ Discourse.User = Discourse.Model.extend({
 
     return this.get('website').split("/")[2];
   }.property('website'),
+  
+  /**
+    This user's profile background(in CSS).
 
+    @property websiteName
+    @type {String}
+  **/
+  profileBackground: function() {
+    var background = this.get('profile_background');
+    if(Em.isEmpty(background) || !Discourse.SiteSettings.allow_profile_backgrounds) { return; }
+    
+    return 'background-image: url(' + background + ')';
+  }.property('profile_background'),
+  
   statusIcon: function() {
     var desc;
     if(this.get('admin')) {
@@ -170,6 +183,7 @@ Discourse.User = Discourse.Model.extend({
                                'bio_raw',
                                'website',
                                'name',
+                               'locale',
                                'email_digests',
                                'email_direct',
                                'email_always',
@@ -315,6 +329,22 @@ Discourse.User = Discourse.Model.extend({
       data: { use_uploaded_avatar: useUploadedAvatar }
     });
   },
+  
+  /*
+    Clear profile background
+    
+    @method clearProfileBackground
+    @returns {Promise} the result of the clear profile background request
+  */
+  clearProfileBackground: function() {
+    var user = this;
+    return Discourse.ajax("/users/" + this.get("username_lower") + "/preferences/profile_background/clear", {
+      type: 'PUT',
+      data: { }
+    }).then(function() {
+      user.set('profile_background', null);
+    });
+  },
 
   /**
     Determines whether the current user is allowed to upload a file.
@@ -354,12 +384,14 @@ Discourse.User = Discourse.Model.extend({
     @type {String}
   **/
   homepage: function() {
-    // top is the default for:
+    // when there are enough topics, /top is the default for
     //   - new users
     //   - long-time-no-see user (ie. > 1 month)
-    if (Discourse.SiteSettings.top_menu.indexOf("top") >= 0) {
-      if (this.get("trust_level") === 0 || !this.get("hasBeenSeenInTheLastMonth")) {
-        return "top";
+    if (Discourse.Site.currentProp("has_enough_topic_to_redirect_to_top_page")) {
+      if (Discourse.SiteSettings.top_menu.indexOf("top") >= 0) {
+        if (this.get("trust_level") === 0 || !this.get("hasBeenSeenInTheLastMonth")) {
+          return "top";
+        }
       }
     }
     return Discourse.Utilities.defaultHomepage();

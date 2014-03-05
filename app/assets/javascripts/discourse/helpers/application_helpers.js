@@ -291,18 +291,14 @@ Handlebars.registerHelper('number', function(property, options) {
     title = I18n.t(options.hash.numberKey, { number: orig });
   }
 
-  // Round off the thousands to one decimal place
-  var n = orig;
-  if (orig > 999 && !options.hash.noTitle) {
-    n = (orig / 1000).toFixed(1) + "K";
-  }
-
   var classNames = 'number';
   if (options.hash['class']) {
     classNames += ' ' + Ember.Handlebars.get(this, options.hash['class'], options);
   }
   var result = "<span class='" + classNames + "'";
 
+  // Round off the thousands to one decimal place
+  var n = Discourse.Formatter.number(orig);
   if (n !== title) {
     result += " title='" + Handlebars.Utils.escapeExpression(title) + "'";
   }
@@ -341,18 +337,13 @@ Ember.Handlebars.registerBoundHelper('date', function(dt) {
 });
 
 /**
-  Look for custom html content in the preload store.
+  Look for custom html content using `Discourse.HTML`
 
   @method customHTML
   @for Handlebars
 **/
 Handlebars.registerHelper('customHTML', function(property) {
-  var html = PreloadStore.get("customHTML");
-
-  if (html && html[property] && html[property].length) {
-    return new Handlebars.SafeString(html[property]);
-  }
-
+  return Discourse.HTML.getCustomHTML(property);
 });
 
 Ember.Handlebars.registerBoundHelper('humanSize', function(size) {

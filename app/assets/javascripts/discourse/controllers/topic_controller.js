@@ -22,7 +22,7 @@ Discourse.TopicController = Discourse.ObjectController.extend(Discourse.Selected
 
   actions: {
     jumpTop: function() {
-      Discourse.URL.routeTo(this.get('url'));
+      Discourse.URL.routeTo(this.get('firstPostUrl'));
     },
 
     jumpBottom: function() {
@@ -224,7 +224,7 @@ Discourse.TopicController = Discourse.ObjectController.extend(Discourse.Selected
   }.property(),
 
   jumpTopDisabled: function() {
-    return (this.get('progressPosition') <= 3);
+    return (this.get('progressPosition') < 2);
   }.property('progressPosition'),
 
   jumpBottomDisabled: function() {
