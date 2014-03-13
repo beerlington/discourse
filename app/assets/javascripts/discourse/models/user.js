@@ -60,7 +60,7 @@ Discourse.User = Discourse.Model.extend({
 
     return this.get('website').split("/")[2];
   }.property('website'),
-  
+
   /**
     This user's profile background(in CSS).
 
@@ -70,10 +70,10 @@ Discourse.User = Discourse.Model.extend({
   profileBackground: function() {
     var background = this.get('profile_background');
     if(Em.isEmpty(background) || !Discourse.SiteSettings.allow_profile_backgrounds) { return; }
-    
+
     return 'background-image: url(' + background + ')';
   }.property('profile_background'),
-  
+
   statusIcon: function() {
     var desc;
     if(this.get('admin')) {
@@ -329,10 +329,10 @@ Discourse.User = Discourse.Model.extend({
       data: { use_uploaded_avatar: useUploadedAvatar }
     });
   },
-  
+
   /*
     Clear profile background
-    
+
     @method clearProfileBackground
     @returns {Promise} the result of the clear profile background request
   */
@@ -373,10 +373,6 @@ Discourse.User = Discourse.Model.extend({
     });
   },
 
-  hasBeenSeenInTheLastMonth: function() {
-    return moment().diff(moment(this.get('last_seen_at')), 'month', true) < 1.0;
-  }.property("last_seen_at"),
-
   /**
     Homepage of the user
 
@@ -384,18 +380,8 @@ Discourse.User = Discourse.Model.extend({
     @type {String}
   **/
   homepage: function() {
-    // when there are enough topics, /top is the default for
-    //   - new users
-    //   - long-time-no-see user (ie. > 1 month)
-    if (Discourse.Site.currentProp("has_enough_topic_to_redirect_to_top_page")) {
-      if (Discourse.SiteSettings.top_menu.indexOf("top") >= 0) {
-        if (this.get("trust_level") === 0 || !this.get("hasBeenSeenInTheLastMonth")) {
-          return "top";
-        }
-      }
-    }
-    return Discourse.Utilities.defaultHomepage();
-  }.property("trust_level", "hasBeenSeenInTheLastMonth"),
+    return this.get("should_be_redirected_to_top") ? "top" : Discourse.Utilities.defaultHomepage();
+  }.property("should_be_redirected_to_top"),
 
   updateMutedCategories: function() {
     this.set("mutedCategories", Discourse.Category.findByIds(this.muted_category_ids));
